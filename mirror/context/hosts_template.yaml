@@ -1,0 +1,15 @@
+username: YOUR-USERNAME
+hosts:
+    mi200:
+      host: "host.ip.address" # put ip address here
+      type: MI200
+      arch: gfx90a
+      comment: the old mi200
+      sshport: 22
+    mi200-2:
+      host: "host.ip.address" # put ip address here
+      type: MI200
+      arch: gfx942
+      comment: the new mi200
+      sshport: 22
+    # add more hosts as needed ..
