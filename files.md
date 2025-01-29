@@ -8,7 +8,12 @@ Helper scripts are automatically on your PATH, so they just run.
 scripts and framework expose the directories and load correct env variables for you in the container
 so that *you* can concentrate on your work instead.
 
-however, said all that it is also important that you know what's going on under-the-hood.
+However, said all that it is also important that you know what's going on under-the-hood.
+
+<img src="container-guy.jpg" height="300">
+
+*Container magic!*
+
 
 ### A. Common directories
 
@@ -78,9 +83,9 @@ killses.bash        # REMOTEHOST / try to kill all inactive shell sessions the c
 login.bash          # LOCALHOST / login to remote host
 newctx.bash         # LOCALHOST / create a new context from template
 prepare.bash        # LOCALHOST / prepare the REMOTEHOST (run only once per REMOTEHOST)
-pull.bash           # LOCALHOST / sync mirror, shared, etc. from REMOTEHOST
+pull.bash           # LOCALHOST / sync mirror, shared, etc. from REMOTEHOST - WARNING: script launches subprocesses with &
 pulldir.bash        # LOCALHOST / pull a complete directory from REMOTEHOST
-push.bash           # LOCALHOST / sync mirror, shared etc. to REMOTEHOST
+push.bash           # LOCALHOST / sync mirror, shared etc. to REMOTEHOST - WARNING: script launches subprocesses with &
 pushdir.bash        # LOCALHOST / push a complete directory to REMOTEHOST
 pushimage.bash      # REMOTEHOST / create a docker image from container & push to registry (WIP)
 pushremove.bash     # LOCALHOST / sync mirror, shared, etc. to REMOTEHOST and delete files that don't exist at LOCALHOST

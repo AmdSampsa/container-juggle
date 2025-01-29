@@ -248,7 +248,14 @@ Next I recommend that you take a look at [files.md](files.md) to see the scripts
 
 Typically you work with multiple contexes (i.e. remotehosts and containers) simultaneously - each one of them in a different tab as I suggested above.
 
-It is very easy to sync between them, just use use `push.bash` and `pull.bash` at LOCALHOST.  More information in [files.md](files.md).
+It is very easy to sync between them, just use use `push.bash` and `pull.bash` at LOCALHOST.  
+
+However, **avoid** this:
+```bash
+pull.bash && push.bash
+```
+As both `pull.bash` and `push.bash` launch several subprocesses with `&` and they exit before all those
+rsync processes are ready.
 
 ## E. Python notebook from the container
 
