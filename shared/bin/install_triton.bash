@@ -16,7 +16,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 cd $HOME/triton/python
-pip uninstall -y triton && pip uninstall -y pytorch-triton_rocm
+pip uninstall -y triton && pip uninstall -y pytorch-triton-rocm && rm -rf ~/.triton
 pip install .
 #cd triton/python # uh.. would need source to this to work
 #echo "NOTE: your compatible triton version can be found in pytorch/.ci/docker/triton_version.txt" 
