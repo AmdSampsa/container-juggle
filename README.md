@@ -18,7 +18,7 @@ Container Juggle eliminates the grunt work:
 
 <img src="juggler.jpg" height="300">
 
-*Container-Juggle will make you happy again*
+*Container-Juggle makes working with containers fun!*
 
 ## A. Nomenclature
 

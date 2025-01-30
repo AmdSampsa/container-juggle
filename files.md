@@ -12,7 +12,7 @@ However, said all that it is also important that you know what's going on under-
 
 <img src="container-guy.jpg" height="300">
 
-*Container magic!*
+*Taming your containers*
 
 
 ### A. Common directories
