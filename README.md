@@ -96,6 +96,7 @@ export gitemail=
 export GH_TOKEN= ## github token for gh tools easy access
 export DOCKER_USER= ## docker credentials for pushing stuff to a registry
 export DOCKER_PASS= ##
+export DOCKER_REG= ## docker registry
 ```
 Needless to say, don't spread these around.
 
@@ -109,7 +110,7 @@ there are also some scripts that use `hosts.yaml`.
 
 ### 2. Setup your first context
 
-*you will be creating lots of these*
+*You will be creating lots of these.  Your contexts will be piling up in ~/mirror/context.*
 
 Let's define your first container, its image id, name and where it's going to run.
 
@@ -305,6 +306,27 @@ At LOCALHOST:
 ```bash
 report.bash
 ```
+
+## J. Save container to a registry
+
+At REMOTEHOST:
+```bash
+toggle_env.bash
+```
+That removes the loading of custom env variables when you enter the CONTAINER.
+Then after entering the CONTAINER again, in CONTAINER:
+```bash
+remprivate.ssh
+```
+which removes all your personal stuff (ssh keys) from the container.
+
+Next you'd might want to test that your CONTAINER still works as intended.
+
+Finally, you can do at REMOTEHOST:
+```bash
+pushimage.bash your-image-name
+```
+
 
 ## Author
 

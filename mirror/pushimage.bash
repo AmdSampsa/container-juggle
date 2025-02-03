@@ -1,4 +1,23 @@
 #!/bin/bash
+if [ -z "$DOCKER_REG" ]; then
+    echo "DOCKER_REG is not set"
+fi
+if [ -z "$DOCKER_USER" ]; then
+    echo "DOCKER_USER is not set"
+fi
+if [ -z "$DOCKER_PASS" ]; then
+    echo "DOCKER_PASS is not set"
+fi
+echo 
+echo pushing a docker container to $DOCKER_REG
+echo before this, consider running
+echo "(1) outside the container: toggle_env.bash:"
+echo "-> to remove all extra env variables"
+echo "(2) inside the container: remprivate.bash:"
+echo "-> to remove your private ssh keys"
+echo
+read -p "press enter to continue, CTRL-C to abort"
+echo
 if [ -z "$1" ]; then
     echo "Error: New image name required as first argument"
     exit 1
