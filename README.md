@@ -314,15 +314,15 @@ At REMOTEHOST:
 toggle_env.bash
 ```
 That removes the loading of custom env variables when you enter the CONTAINER.
-Then after entering the CONTAINER again, in CONTAINER:
+Then after entering the CONTAINER again, do:
 ```bash
-remprivate.ssh
+remprivate.bash
 ```
 which removes all your personal stuff (ssh keys) from the container.
 
 Next you'd might want to test that your CONTAINER still works as intended.
 
-Finally, you can do at REMOTEHOST:
+Finally, do at REMOTEHOST:
 ```bash
 pushimage.bash your-image-name
 ```
