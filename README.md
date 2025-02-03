@@ -253,7 +253,7 @@ It is very easy to sync between them, just use use `push.bash` and `pull.bash` a
 
 However, **avoid** this:
 ```bash
-pull.bash && push.bash
+pull.bash && push.bash # WARNING WARNING DON'T DO THIS
 ```
 As both `pull.bash` and `push.bash` launch several subprocesses with `&` and they exit before all those
 rsync processes are ready.
