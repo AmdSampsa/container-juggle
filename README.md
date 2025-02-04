@@ -22,7 +22,7 @@ Container Juggle eliminates the grunt work:
 
 Please follow this tutorial step-by-step to get Container-Juggle up and working.
 
-There is also a [faq][faq.md]
+There is also a [faq](faq.md)
 
 ## A. Nomenclature
 
