@@ -20,6 +20,10 @@ Container Juggle eliminates the grunt work:
 
 *Container-Juggle makes working with containers fun!*
 
+Please follow this tutorial step-by-step to get Container-Juggle up and working.
+
+There is also a [faq][faq.md]
+
 ## A. Nomenclature
 
 LOCALHOST = your laptop
