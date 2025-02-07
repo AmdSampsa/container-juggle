@@ -6,3 +6,9 @@ Q: I used `slct` to load a context, did `login.bash` but in the remote host, the
 
 A: When using a new REMOTEHOST for the first time, you need to (1) select context with `slct` and run `prepare.bash` from LOCALHOST.  Do this procedure only once for each new REMOTEHOST.
 
+### 2. VSCode to REMOTEHOST and CONTAINER doesn't connect
+
+Q: VSCode says it can't SSH to the REMOTEHOST
+
+A: Your REMOTEHOST has probably run out of diskspace.   Make a terminal connection and clean up some.
+
