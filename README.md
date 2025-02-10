@@ -59,6 +59,7 @@ Sorry for the inconvenience, but you have to `cp -r` directories `mirror/` and `
 
 ```bash
 sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping
+pip install paramiko
 ```
 
 #### c. Create custom ssh keys
