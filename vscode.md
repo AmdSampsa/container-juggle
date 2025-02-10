@@ -1,6 +1,6 @@
 ## Install VSCode remote development tools
 
-*Connect to remote host*
+### Connect to REMOTEHOST
 
 For VSCode, install "remote development extension": it has remote ssh, dev containers, etc.
 
@@ -19,7 +19,7 @@ Host SOME-NAME
 
 Now try to get a remote connection to your host.
 
-*Connect to remote container*
+### Connect to a CONTAINER
 
 Once you're in the remote host's VSCode, there is a symbol of a screen in the leftmost vertical menu, called "Remote Explorer".
 
@@ -27,3 +27,9 @@ Click it and choose "Dev Containers" in a dropdown menu you see in the upper lef
 
 Choose a container and now you are in a VSCode that runs inside the container.  You still need to install (again) all your plugins in the container VSCode.
 
+### Interactive debugging in CONTAINER 
+
+VSCode debugging works on the basis of a `launch.json` file.  We provide a nice one for rocm and python debugging, see it in [shared/launch.json](shared/launch.json).
+
+If you follow the tutorial in the main readme file, that file is already in the correct place in your container.  In VSCode menus, you can choose to edit it and launch
+debugging session using it.
