@@ -9,6 +9,15 @@ fi
 rm -f $HOME/pytorch
 ln -s $HOME/pytorch-$1 $HOME/pytorch
 
+cd $HOME/pytorch
+echo
+echo "Installing required linters"
+echo
+lintrunner init
+echo
+echo "Installed required linters"
+echo
+
 if [ -f "$HOME/pytorch/.ci/docker/triton_version.txt" ]; then
     # Get expected version from file
     expected_version=$(cat "$HOME/pytorch/.ci/docker/triton_version.txt")

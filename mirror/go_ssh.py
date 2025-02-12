@@ -21,14 +21,33 @@ def load_config():
     with open(CONFIG_FILE, 'r') as f:
         return yaml.safe_load(f)
 
-def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str]:
-    """Test SSH connection to a host
+def get_disk_space(ssh: paramiko.SSHClient) -> str:
+    """Get disk space information for root directory.
+    
+    Returns:
+        String containing disk usage information or error message
+    """
+    try:
+        stdin, stdout, stderr = ssh.exec_command("df -h /")
+        output = stdout.readlines()
+        if len(output) >= 2:  # df output has header and at least one data line
+            # Get the last line which contains the actual data
+            data = output[1].split()
+            total, used, avail = data[1], data[2], data[3]
+            used_percent = data[4]
+            return f"Total: {total}, Used: {used}, Available: {avail} ({used_percent} used)"
+        return "Unable to parse disk space information"
+    except Exception as e:
+        return f"Error getting disk space: {str(e)}"
+
+def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str, str]:
+    """Test SSH connection to a host and check disk space
     
     Args:
         host_info: Tuple of (nickname, host_config)
     
     Returns:
-        Tuple of (nickname, success_status, message)
+        Tuple of (nickname, success_status, connection_message, disk_space_info)
     """
     nickname, config = host_info
     host = config['host']
@@ -43,7 +62,7 @@ def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str]:
         sock.settimeout(5)
         result = sock.connect_ex((host, port))
         if result != 0:
-            return nickname, False, f"Port {port} is closed"
+            return nickname, False, f"Port {port} is closed", ""
         sock.close()
         
         # Then try SSH connection
@@ -53,24 +72,26 @@ def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str]:
             username=config['username'],
             timeout=5
         )
-        ssh.close()
-        return nickname, True, "Connection successful"
+        
+        # Get disk space information if connection successful
+        disk_space = get_disk_space(ssh)
+        return nickname, True, "Connection successful", disk_space
     
     except socket.gaierror:
-        return nickname, False, "DNS lookup failed"
+        return nickname, False, "DNS lookup failed", ""
     except paramiko.AuthenticationException:
-        return nickname, False, "Authentication failed"
+        return nickname, False, "Authentication failed", ""
     except (socket.timeout, paramiko.SSHException) as e:
-        return nickname, False, f"Connection failed: {str(e)}"
+        return nickname, False, f"Connection failed: {str(e)}", ""
     except Exception as e:
-        return nickname, False, f"Error: {str(e)}"
+        return nickname, False, f"Error: {str(e)}", ""
     finally:
         ssh.close()
 
 def test_all_connections(config):
-    """Test connections to all hosts in parallel"""
-    print("Testing SSH connections to all hosts...")
-    print("-" * 50)
+    """Test connections to all hosts in parallel and show disk space"""
+    print("Testing SSH connections and checking disk space...")
+    print("-" * 70)
     
     host_configs = [
         (nickname, {**host_config, 'username': config['username']})
@@ -84,11 +105,13 @@ def test_all_connections(config):
         }
         
         for future in as_completed(future_to_host):
-            nickname, success, message = future.result()
+            nickname, success, message, disk_space = future.result()
             status = "✓" if success else "✗"
             print(f"{status} {nickname}: {message}")
+            if disk_space:
+                print(f"   Disk Space: {disk_space}")
     
-    print("-" * 50)
+    print("-" * 70)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -103,7 +126,7 @@ def main():
     group.add_argument(
         "-t", "--test",
         action="store_true",
-        help="Test connections to all hosts"
+        help="Test connections to all hosts and show disk space"
     )
     
     args = parser.parse_args()
