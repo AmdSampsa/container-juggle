@@ -22,6 +22,8 @@ export ROCPROFDIR=/var/lib/jenkins/rocmProfileData
 export SHAREDIR=/root/shared
 # in the case we have compiled pytorch ourselves, also use custom modules from shared/pythonenv:
 export PYTHONPATH=/root/pytorch:$PYTHONPATH:/root/shared/pythonenv
+# turn off python write buffering:
+export PYTHONUNBUFFERED=1
 export SHAREDUMP=/root/sharedump
 # this should be avail if we have logged in correctly:
 export CTXENV=/root/shared/env/$contextname
@@ -37,6 +39,9 @@ alias indrun='rm -rf /tmp/torchinductor_root && python'
 alias memrun='HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2 HSA_ENABLE_DEBUG=1 python'
 #
 alias subinit='git submodule deinit -f third_party/kineto && git submodule deinit -f third_party/ideep && rm -rf third_party/x86-simd-sort/ && git submodule update --init --recursive'
+#
+## alias for running lintrunner inside the virtualenv
+alias lintrun='$HOME/pytorch/venv/bin/lintrunner'
 #
 export BUILD_TEST=0
 export USE_CAFFE2=0
@@ -77,4 +82,19 @@ detect_gpu_and_set_arch() {
     echo "No supported GPU detected!"
     return 1
 }
+
+# Search PyTorch issues for a test name
+pytorch_issues() {
+    test_name="$1"
+    encoded_name=$(echo "$test_name" | sed 's/ /%20/g')
+    url="https://github.com/pytorch/pytorch/issues?q=is%3Aissue+is%3Aopen+$encoded_name"
+    echo "$url"
+    
+    # If on Mac, you can add this to automatically open in browser
+    # open "$url"
+    
+    # If on Linux, you can uncomment this instead
+    # xdg-open "$url"
+}
+
 detect_gpu_and_set_arch
