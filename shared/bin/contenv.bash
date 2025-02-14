@@ -11,7 +11,7 @@ if [ -d "/var/lib/jenkins/pytorch" ]; then
 elif [ -d "/tmp/pytorch" ]; then
     export TORCHDIR="/tmp/pytorch"
 else
-    echo "WARNING: Neither pytorch directory found!"
+    echo "ROCM WARNING: neither /var/lib/jenkings/pytorch (internal testing image) nor /tmp/pytorch (nightly image) found"
 fi
 ## where torch is actually imported & being executed from:
 echo "probing torch installation.."
@@ -41,7 +41,7 @@ alias memrun='HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2 HSA_ENABLE_DE
 alias subinit='git submodule deinit -f third_party/kineto && git submodule deinit -f third_party/ideep && rm -rf third_party/x86-simd-sort/ && git submodule update --init --recursive'
 #
 ## alias for running lintrunner inside the virtualenv
-alias lintrun='$HOME/pytorch/venv/bin/lintrunner'
+alias lintrun='./venv/bin/lintrunner'
 #
 export BUILD_TEST=0
 export USE_CAFFE2=0

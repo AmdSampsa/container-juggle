@@ -9,22 +9,24 @@ fi
 rm -f $HOME/pytorch
 ln -s $HOME/pytorch-$1 $HOME/pytorch
 
-cd $HOME/pytorch
-if [ -d "venv" ]; then
-    echo "lintrunner venv directory exists"
-else
-    export PYTHONNOUSERSITE=1
-    export PIP_NO_CACHE_DIR=1
-    echo "will create venv and install lintrunner therein"
-    python -m venv $HOME/pytorch/venv
-    $HOME/pytorch/venv/bin/pip install lintrunner
-    
-    echo "Installing required linters"
-    $HOME/pytorch/venv/bin/lintrunner init
-    echo "Installed required linters"
-    unset PYTHONNOUSERSITE
-    unset PIP_NO_CACHE_DIR
-fi
+## let's do this in a separate script instead..
+#cd $HOME/pytorch
+#if [ -d "venv" ]; then
+#    echo "lintrunner venv directory exists"
+#else
+#    export PYTHONNOUSERSITE=1
+#    export PIP_NO_CACHE_DIR=1
+#    echo "will create venv and install lintrunner therein"
+#    python -m venv $HOME/pytorch/venv
+#    $HOME/pytorch/venv/bin/pip install lintrunner
+#    
+#    echo "Installing required linters"
+#    $HOME/pytorch/venv/bin/lintrunner init
+#    echo "Installed required linters"
+#    unset PYTHONNOUSERSITE
+#    unset PIP_NO_CACHE_DIR
+#    echo
+#fi
 
 if [ -f "$HOME/pytorch/.ci/docker/triton_version.txt" ]; then
     # Get expected version from file
@@ -36,7 +38,7 @@ if [ -f "$HOME/pytorch/.ci/docker/triton_version.txt" ]; then
     if [ "$expected_version" = "$actual_version" ]; then
         echo "Triton versions match: $actual_version"
         echo 
-        echo when linting, use the "lintrun" alias to run lintunner in the virtualenv
+        echo when linting, run first "initlinter.bash" and then use the "lintrun" alias to run lintunner in the virtualenv
         echo
         exit 0
     else

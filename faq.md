@@ -12,3 +12,9 @@ Q: VSCode says it can't SSH to the REMOTEHOST
 
 A: Your REMOTEHOST has probably run out of diskspace.   Make a terminal connection and clean up some.
 
+### 3. No such file or directory when using login.bash
+
+Q: I did `login.bash` as instructed, but got `cat: ... .bash: No such file or directory`.
+
+A: You didn't send the new context files into the REMOTEHOST using `push.bash`.  Please revisit the step-by-step instructions.
+
