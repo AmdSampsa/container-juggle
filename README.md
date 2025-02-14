@@ -58,27 +58,25 @@ Sorry for the inconvenience, but you have to `cp -r` directories `mirror/` and `
 #### b. Install some packages
 
 ```bash
-sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping
-pip install paramiko
+sudo apt-get update && sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping python3-pip python3-paramiko
 ```
 
 #### c. Create custom ssh keys
 
 Create a custom ssh keypair.  This is used for your remote host(s) authentication into github, both from REMOTEHOST and from withint CONTAINER
 ```bash
-mkdir -p custom_ssh_keys
-ssh-keygen -t rsa -b 4096 -f ~/custom_ssh_keys/id_rsa
+mkdir -p custom_ssh_keys && ssh-keygen -t rsa -b 4096 -f ~/custom_ssh_keys/id_rsa
 ```
-Copy-paste `custom_ssh_keys/id_rsa.pub` into your github account, using github's web UI.  After adding the key, remember to click the
+(just press enter few times for no passphrase).  Copy-paste `custom_ssh_keys/id_rsa.pub` into your github account, using github's web UI.  After adding the key, remember to click the
 "configure SSO" dropdown menu in web UI and therein authorize your workspace, etc.
 
 #### d. bashrc
 
-Add this line
+Do this:
 ```bash
-source mirror/env.bash
+echo "source mirror/env.bash" >> $HOME/.bashrc
 ```
-into your `~/.bashrc`.  Tadaa - now you can access all executables from `~/mirror` and `~/shared`.
+it adds a line into your `~/.bashrc`.  Tadaa - now you can access all executables from `~/mirror` and `~/shared`.
 
 In order for that to take effect, you now need to restart your WSL terminal(s)
 
