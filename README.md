@@ -111,6 +111,8 @@ cp ~/mirror/context/hosts_template.yaml ~/mirror/context/hosts.yaml
 ```
 there are also some scripts that use `hosts.yaml`.
 
+*A tip: once you have a hosts.yaml, share it among your team*
+
 ### 2. Setup your first context
 
 *You will be creating lots of these.  Your contexts will be piling up in ~/mirror/context.*
