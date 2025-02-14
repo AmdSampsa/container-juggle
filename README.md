@@ -225,6 +225,14 @@ and *tadaa* - you are inside the container, exactly where you left last time.
 
 If you have several session in a container, the shorthand command `tlg` will always choose the next one it found hanging there and will use it - otherwise it will give an error message.
 
+Fallback: if that doesn't work for some reason, you need to give these commands:
+```bash
+slct
+login.bash
+tmux ls # see all tmux session 
+tmux attach # attach to the old session
+```
+
 If you want to start a new session inside the container, just do at LOCALHOST:
 ```bash
 slct # if not in the context already
