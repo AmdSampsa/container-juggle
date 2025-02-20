@@ -1,19 +1,49 @@
 #!/bin/bash
 # cd /tmp/
 if [ -z "$1" ]; then
-    echo "Error: release tag missing"
+    echo
+    echo "Error: release tag or commit missing"
+    echo "Input argument, either just the release tag, i.e.:"
+    echo "   3.2.x"
+    echo "or define commit with:"
+    echo "   --commit HASH"
+    echo "or TOT with:"
+    echo "   --head"
     exit 1
 fi
 # git clone https://github.com/triton-lang/triton
 if [ ! -d "$HOME/triton" ]; then
-    git clone --depth 1 --no-single-branch https://github.com/triton-lang/triton "$HOME/triton"
+    echo
+    #echo "cloning, but only since 4 weeks - use git fetch --unshallow to fix that"
+    # echo
+    # git clone --shallow-since="4 weeks ago" https://github.com/triton-lang/triton "$HOME/triton"
+    git clone https://github.com/triton-lang/triton "$HOME/triton"
 fi
 cd $HOME/triton
-git checkout release/$1
-if [ $? -ne 0 ]; then
-    echo "Command failed"
-    echo "NOTE: release tags are for example: 3.2.x (not 3.2.0 etc.)"
-    exit 1
+
+if [ "$1" = "--head" ]; then
+    git checkout main
+    git pull
+    echo
+    echo TOT
+    echo
+    git reset --hard HEAD
+elif [ "$1" = "--commit" ]; then
+    if [ -n "$2" ]; then
+        HASH="$2"
+        echo "commit: $HASH"
+    else
+        echo "Error: No hash provided after --commit"
+        exit 1
+    fi
+    git checkout $HASH
+else
+    git checkout release/$1
+    if [ $? -ne 0 ]; then
+        echo "Command failed"
+        echo "NOTE: release tags are for example: 3.2.x (not 3.2.0 etc.)"
+        exit 1
+    fi
 fi
 cd $HOME/triton/python
 pip uninstall -y triton && pip uninstall -y pytorch-triton-rocm && rm -rf ~/.triton

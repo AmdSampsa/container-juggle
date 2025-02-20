@@ -9,16 +9,22 @@ echo "/tmp/pytorch (nightly)"
 echo
 read -p "Press enter to continue, CTRL-C to abort"
 if [ -d "venv" ]; then
-    echo "lintrunner venv directory exists already"
-else
-    export PYTHONNOUSERSITE=1
-    export PIP_NO_CACHE_DIR=1
-    echo "will create venv and install lintrunner therein"
-    python -m venv ./venv
-    ./venv/bin/pip install lintrunner
-    echo "Installing required linters"
-    ./venv/bin/lintrunner init
-    echo "Installed required linters"
-    unset PYTHONNOUSERSITE
-    unset PIP_NO_CACHE_DIR
+    while true; do
+        read -p "venv directory exists. Remove and continue? (y/n): " yn
+        case $yn in
+            [Yy]* ) rm -rf venv; break;;
+            [Nn]* ) echo "Exiting..."; exit 1;;
+            * ) echo "Please answer y or n.";;
+        esac
+    done
 fi
+export PYTHONNOUSERSITE=1
+export PIP_NO_CACHE_DIR=1
+echo "will create venv and install lintrunner therein"
+python -m venv ./venv
+./venv/bin/pip install lintrunner
+echo "Installing required linters"
+./venv/bin/lintrunner init
+echo "Installed required linters"
+unset PYTHONNOUSERSITE
+unset PIP_NO_CACHE_DIR

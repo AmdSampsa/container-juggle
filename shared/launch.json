@@ -28,9 +28,13 @@
               "name": "Python: Running python debugger",
               "type": "debugpy",
               "request": "launch",
-              "program": "/tmp/pytorch/test/inductor/test_fused_attention.py",
-              "args": ["SDPAPatternRewriterCudaDynamicTests.test_sdpa_rewriter_11_cuda"],
-              "env": {"PYTORCH_TEST_WITH_ROCM": "0"},
+              "program": "/root/pytorch/test/inductor/test_torchinductor.py",
+              "args": ["GPUTests.test_scatter5_cuda"],
+              "env": {
+                "PYTORCH_TEST_WITH_ROCM": "0",
+                "TORCHINDUCTOR_COMPILE_THREADS": "1",
+                "TORCH_COMPILE_DEBUG": "1"
+              },
               "justMyCode": false
           }
     ]

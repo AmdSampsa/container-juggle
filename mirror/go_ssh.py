@@ -40,7 +40,7 @@ def get_disk_space(ssh: paramiko.SSHClient) -> str:
     except Exception as e:
         return f"Error getting disk space: {str(e)}"
 
-def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str, str]:
+def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, str, bool, str, str]:
     """Test SSH connection to a host and check disk space
     
     Args:
@@ -52,7 +52,7 @@ def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str, st
     nickname, config = host_info
     host = config['host']
     port = config['sshport']
-    
+
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
@@ -62,7 +62,7 @@ def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str, st
         sock.settimeout(5)
         result = sock.connect_ex((host, port))
         if result != 0:
-            return nickname, False, f"Port {port} is closed", ""
+            return host, nickname, False, f"Port {port} is closed", ""
         sock.close()
         
         # Then try SSH connection
@@ -75,16 +75,18 @@ def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, bool, str, st
         
         # Get disk space information if connection successful
         disk_space = get_disk_space(ssh)
-        return nickname, True, "Connection successful", disk_space
+        # return host, nickname, True, "Connection successful", disk_space
+        return host, nickname, True, "", disk_space
+        
     
     except socket.gaierror:
-        return nickname, False, "DNS lookup failed", ""
+        return host, nickname, False, "DNS lookup failed", ""
     except paramiko.AuthenticationException:
-        return nickname, False, "Authentication failed", ""
+        return host, nickname, False, "Authentication failed", ""
     except (socket.timeout, paramiko.SSHException) as e:
-        return nickname, False, f"Connection failed: {str(e)}", ""
+        return host, nickname, False, f"Connection failed: {str(e)}", ""
     except Exception as e:
-        return nickname, False, f"Error: {str(e)}", ""
+        return host, nickname, False, f"Error: {str(e)}", ""
     finally:
         ssh.close()
 
@@ -105,9 +107,9 @@ def test_all_connections(config):
         }
         
         for future in as_completed(future_to_host):
-            nickname, success, message, disk_space = future.result()
+            host, nickname, success, message, disk_space = future.result()
             status = "✓" if success else "✗"
-            print(f"{status} {nickname}: {message}")
+            print(f"{status} {nickname} (aka {host}): {message}")
             if disk_space:
                 print(f"   Disk Space: {disk_space}")
     

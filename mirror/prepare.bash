@@ -1,7 +1,7 @@
 #!/bin/bash
 ## run at CLIENT to prepare a new remote server
 ## we want to use bash as our default shell & also check if the user's home directory is broken and if so, then fix it (it's AMD!)
-ssh -p "$sshport" $username@"$hostname" '
+ssh -o StrictHostKeyChecking=no -p "$sshport" $username@"$hostname" '
 if [ ! -f ~/.bashrc ]; then
     cp /etc/skel/.bashrc ~/.bashrc && echo ".bashrc copied from /etc/skel"
 else

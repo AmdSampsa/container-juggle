@@ -207,7 +207,7 @@ Get into the container at REMOTEHOST with:
 enter.bash
 ```
 You can now probe your pytorch installation in CONTAINER by:
-```bash
+```bashexit
 showenvs.bash
 ```
 
