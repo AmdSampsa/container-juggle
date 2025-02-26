@@ -106,6 +106,7 @@ class TestRunner:
         results = {}  # Store test results
         
         for cmd in commands:
+            print(">cmd", cmd)
             # Convert command back to tab format for result tracking
             module_path = cmd.split()[1].replace('/', '.').replace('.py', '')
             class_name = cmd.split()[2].split('.')[0]
@@ -191,7 +192,7 @@ def main():
     parser.add_argument('--print', action='store_true', help='Print markdown documentation')
     parser.add_argument('--repeat', type=int, help='Number of times to repeat each test')
     parser.add_argument('--format', choices=['auto', 'yaml', 'indent', 'table'], 
-                       default='auto', help='Input file format')
+                       help='Input file format', required=True)
     parser.add_argument('--find-issues', action='store_true', 
                        help='Include GitHub issue search links in markdown output')
     

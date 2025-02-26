@@ -52,6 +52,7 @@ alias localenv='export PYTHONPATH=$HOME/pytorch:$PYTHONPATH'
 alias devenv='export PYTHONPATH=$TORCHDIR:$PYTHONPATH'
 ## install torch from the current dir:
 alias install-torch='pip uninstall -y torch && python setup.py install'
+alias install-triton="cd $HOME/triton/python && pip uninstall -y triton && pip uninstall -y pytorch-triton-rocm && rm -rf ~/.triton && pip install ."
 #
 # Function to detect GPU and set architecture
 detect_gpu_and_set_arch() {

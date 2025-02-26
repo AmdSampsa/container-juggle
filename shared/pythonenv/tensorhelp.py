@@ -12,24 +12,19 @@ def save_tensor(tensor, filename):
 
 
 def tensor_stat(t):
-    print(f"MIN: {torch.min(t)}, MAX: {torch.max(t)}, MEAN: {torch.mean(t)}, VAR: {torch.var(t)}")
+    print(f"SHAPE: {t.shape}, DTYPE: {t.dtype}, MIN: {torch.min(t)}, MAX: {torch.max(t)}, MEAN: {torch.mean(t)}, VAR: {torch.var(t)}")
 
 def numpy_stat(arr):
     print(f"MIN: {np.min(arr)}, MAX: {np.max(arr)}, MEAN: {np.mean(arr)}, VAR: {np.var(arr)}")
 
-def load_and_compare_tensor(file1, file2):
-    """Load and compare two numpy tensors, return comparison metrics"""
-    arr1 = np.load(file1)
-    arr2 = np.load(file2)
-    
+
+def compare_np(arr1: np.array, arr2: np.array) -> dict:
     if arr1.shape != arr2.shape:
         raise ValueError(f"Shape mismatch: {arr1.shape} vs {arr2.shape}")
-    
     abs_diff = np.abs(arr1 - arr2)
     max_diff = np.max(abs_diff)
     mean_diff = np.mean(abs_diff)
     l2_diff = np.sqrt(np.mean(np.square(abs_diff)))
-    
     return {
         'max_diff': max_diff,
         'mean_diff': mean_diff,
@@ -41,6 +36,15 @@ def load_and_compare_tensor(file1, file2):
         'arr2_std': np.std(arr2)
     }
 
+
+def compare_tensor(t1: torch.tensor, t2: torch.tensor):
+    return compare_np(t1.to("cpu").detach().numpy(), t2.to("cpu").detach().numpy())
+
+def load_and_compare_tensor(file1, file2):
+    """Load and compare two numpy tensors, return comparison metrics"""
+    arr1 = np.load(file1)
+    arr2 = np.load(file2)
+    return compare_np(arr1, arr2)
 
 class TensorComp:
     def __init__(self, directory: str, overwrite=True, verbose=False):
