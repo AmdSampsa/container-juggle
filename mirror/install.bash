@@ -18,7 +18,7 @@ docker exec $container_name /bin/sh -c '
   apt install gh
 '
 echo "Installing some python packages"
-docker exec $container_name pip install jupyter tabulate ruff pyflakes autoflake
+docker exec $container_name pip install jupyter tabulate ruff pyflakes autoflake pytest-xdist
 ## prepare git at server and client
 ## NOTE: this was done already in prepare.bash for the host:
 #git config --global user.name "${gitname}"
