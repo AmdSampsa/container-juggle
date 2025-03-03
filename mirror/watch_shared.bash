@@ -26,7 +26,8 @@ for dir in "${WATCH_DIRS[@]}"; do
 done
 
 # Watch directories from array
-inotifywait -m -r -e modify,create,delete,move,moved_to,moved_from,attrib,isdir "${WATCH_DIRS[@]}" |
+# inotifywait -m -r -e modify,create,delete,move,moved_to,moved_from,attrib,isdir "${WATCH_DIRS[@]}" |
+inotifywait -m -r -e modify,create,delete,move,moved_to,moved_from,isdir "${WATCH_DIRS[@]}" |
 while read path action file; do
     sudo chown -R $username "$path"
     echo "$(date): Change detected in $path$file. Ownership updated."
