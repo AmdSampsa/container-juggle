@@ -22,3 +22,26 @@ alias shis="tac $HOME/.slct_history.txt"
 #echo "available contexes:"
 #ls -1 mirror/context
 #echo
+extract_to_subdir() {
+  local filename="$1"
+  local zipfile="${filename}.zip"
+  local subdir="${filename}"
+  
+  # Check if the zip file exists
+  if [ ! -f "$zipfile" ]; then
+    echo "Error: $zipfile does not exist."
+    return 1
+  fi
+  
+  # Create subdirectory if it doesn't exist
+  mkdir -p "$subdir"
+  
+  # Unzip the file into the subdirectory
+  unzip -o "$zipfile" -d "$subdir"
+  
+  echo "Successfully extracted $zipfile to $subdir/"
+}
+
+# Create the alias that calls the function
+alias unzipsub='extract_to_subdir'
+

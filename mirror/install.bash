@@ -96,6 +96,34 @@ EOF
 ## source our custom env variables at shell startup:
 # echo "source mirror/env.bash" >> .bashrc
 ## .. done by prepare.bash
+
+if [ "$1" = "--latest" ]; then  
+  echo
+  echo "INSTALLING & COMPILING LATEST PYTORCH AND TRITON 3.3.x"
+  echo
+  ## install latest pytorch main and triton tot:
+  ## tot would be: install_triton.bash --head &&
+  #docker exec -it $container_name /bin/bash -c '
+  #  PS1=dummy source ~/.bashrc &&
+  #  install_triton.bash 3.3.x &&
+  #  get_torch_me.bash &&
+  #  cd /root/pytorch-me &&
+  #  clean_torch.bash --yes &&
+  #  setpytorch.bash me
+  #  '
+  ## in parallel:
+  docker exec -it $container_name /bin/bash -c '
+    PS1=dummy source ~/.bashrc &&
+    install_triton.bash 3.3.x &
+    get_torch_me.bash &&
+    cd /root/pytorch-me &&
+    clean_torch.bash --yes &
+    wait &&
+    cd /root/pytorch-me &&
+    initlinter.bash --yes &&
+    setpytorch.bash me
+  '
+fi
 echo
 echo "DONE!"
 echo

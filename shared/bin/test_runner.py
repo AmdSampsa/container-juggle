@@ -23,10 +23,48 @@ class TestRunner:
             elif format_type == 'table' or (format_type == 'auto' and '\t' in f.readline()):
                 f.seek(0)  # Reset file pointer after readline
                 return self._parse_table_format(f)
+            elif format_type == 'pytest' or (format_type == 'auto' and '::' in f.readline()):
+                f.seek(0)  # Reset file pointer after readline
+                return self._parse_pytest_format(f)
             else:
                 f.seek(0)  # Reset file pointer
                 return self._parse_indent_format(f)
     
+
+    def _parse_pytest_format(self, file) -> Dict:
+        """Parse pytest-style format with double colons (file::class::method)."""
+        config = {}
+        for line in file:
+            line = line.strip()
+            if not line or line.startswith('#'):  # Skip empty lines and comments
+                continue
+                
+            # Remove end-of-line comments if present
+            line = line.split('#')[0].strip()
+            if not line:  # Skip if line was only a comment
+                continue
+                
+            try:
+                # Split by double colons
+                parts = line.split('::')
+                if len(parts) != 3:
+                    print(f"Warning: Skipping malformed line: {line}", file=sys.stderr)
+                    continue
+                    
+                file_path, class_name, test_method = parts
+                
+                if file_path not in config:
+                    config[file_path] = {}
+                if class_name not in config[file_path]:
+                    config[file_path][class_name] = []
+                config[file_path][class_name].append(test_method)
+            except ValueError as e:
+                print(f"Warning: Skipping malformed line: {line}", file=sys.stderr)
+                raise
+            
+        return config
+
+
     def _parse_table_format(self, file) -> Dict:
         """Parse tab-separated table format."""
         config = {}
@@ -191,8 +229,8 @@ def main():
     parser.add_argument('--run', action='store_true', help='Run the tests')
     parser.add_argument('--print', action='store_true', help='Print markdown documentation')
     parser.add_argument('--repeat', type=int, help='Number of times to repeat each test')
-    parser.add_argument('--format', choices=['auto', 'yaml', 'indent', 'table'], 
-                       help='Input file format', required=True)
+    parser.add_argument('--format', choices=['auto', 'yaml', 'indent', 'table', 'pytest'], 
+                       default='auto', help='Input file format')
     parser.add_argument('--find-issues', action='store_true', 
                        help='Include GitHub issue search links in markdown output')
     

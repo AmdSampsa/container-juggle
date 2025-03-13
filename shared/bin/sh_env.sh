@@ -1,4 +1,6 @@
 #!/bin/sh
+echo DEPRECATED!
+paska # this is a deprecated script
 set -a  # This makes all subsequently defined variables be exported
 . /root/shared/bin/contenv.bash
 . /root/shared/bin/buildenv.bash

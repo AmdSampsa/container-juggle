@@ -36,6 +36,10 @@ print(f'Triton version: {triton.__version__}')
 print()
 print(torch.__config__.show())
 "
+echo 
+echo CHECKING TORCHVISION
+python3 -c "import torchvision"
+echo
 # Check if pytorch directory exists
 if [ -d "$HOME/pytorch" ]; then
     echo "Custom-compiled python found:"

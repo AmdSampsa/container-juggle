@@ -1,9 +1,9 @@
 #!/bin/bash
 ## use at SERVER
-## start_plain.bash image-name tag
+## start_plain.bash image-name container-name
 
 image_id=$1
-container_name=$1-$2
+container_name=$2
 
 # Check if the container exists
 container_id=$(docker ps -aq -f name=^/${container_name}$)
@@ -55,6 +55,9 @@ else
         DOCKER_GPU_FLAGS="--device=/dev/kfd --device=/dev/dri --group-add video"
     fi
 
+    # NOTE: in the plain container, do this minimal test:
+    # python -c "import torch, inspect; print(f'Torch is imported from: {inspect.getfile(torch)}')"
+    #
     # Create the command string
     docker_cmd="docker run -d \
         --name $container_name \
@@ -71,5 +74,12 @@ else
     # echo "$docker_cmd" > $HOME/.docker_run
 
     # Execute the command
+    echo STATING CONTAINER WITH
+    echo
+    echo $docker_cmd
+    echo
+    echo CONTAINER STARTED
+    echo
     eval "$docker_cmd"
+    echo
 fi

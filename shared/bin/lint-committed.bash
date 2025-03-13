@@ -93,5 +93,6 @@ fi
 # Run lintrunner on the files
 echo "Running lintrunner..."
 echo "${FILE_ARRAY[@]}" | xargs ./venv/bin/lintrunner -a 
+echo
+echo "Processed files: ${FILE_ARRAY[@]}"
 
-echo "Done!"

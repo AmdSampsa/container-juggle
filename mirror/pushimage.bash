@@ -25,6 +25,18 @@ fi
 push=true
 [[ $2 == "--no-push" ]] && push=false
 docker login -u $DOCKER_USER -p $DOCKER_PASS
+echo
+echo DOCKER COMMIT
+echo
 docker commit $container_name $1
+echo
+echo DOCKER TAG
+echo
 docker tag $1 $DOCKER_REG:$1
 $push && docker push $DOCKER_REG:$1
+echo
+echo you can try this container with
+echo
+echo start_plain.bash $DOCKER_REG:$1 container-name
+echo enter.bash container-name
+echo

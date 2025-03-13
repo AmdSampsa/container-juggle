@@ -1,5 +1,10 @@
 ## Install VSCode remote development tools
 
+### Using VSCode with WSL linux
+
+Don't open files directly from the WSL disk space (that way nothing works), but install the "WSL" extension and open our linux WSL disk space
+form remote explorer -> WSL Targets
+
 ### Connect to REMOTEHOST
 
 For VSCode, install "remote development extension": it has remote ssh, dev containers, etc.
