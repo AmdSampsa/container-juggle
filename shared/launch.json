@@ -25,13 +25,36 @@
             ]
           },
           { // an example of how to debug a pytorch unit test
-              "name": "Python: Running python debugger",
+              "name": "Python: run a UT",
               "type": "debugpy",
               "request": "launch",
               "program": "/root/pytorch/test/inductor/test_torchinductor.py",
               "args": ["GPUTests.test_scatter5_cuda"],
               "env": {
                 "PYTORCH_TEST_WITH_ROCM": "0",
+                "TORCHINDUCTOR_COMPILE_THREADS": "1",
+                "TORCH_COMPILE_DEBUG": "1"
+              },
+              "justMyCode": false
+          },
+          { // torcbench benchmark test
+              "name": "Python: Running benchmark test",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "/root/pytorch/benchmarks/dynamo/torchbench.py",
+              "args": ["--inference","--performance","--bfloat16","--backend=inductor", "--only","basic_gnn_gcn"],
+              "env": {
+                "TORCHINDUCTOR_COMPILE_THREADS": "1",
+                "TORCH_COMPILE_DEBUG": "1"
+              },
+              "justMyCode": false
+          },
+          { // just some random python file
+              "name": "Python: A file",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "${file}",
+              "env": {
                 "TORCHINDUCTOR_COMPILE_THREADS": "1",
                 "TORCH_COMPILE_DEBUG": "1"
               },

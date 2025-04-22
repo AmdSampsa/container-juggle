@@ -1,4 +1,10 @@
 #!/bin/bash
+##
+## NOTE: you can use this always when syncing your pytorch main with the upstream main
+## not just for the first time git checkout
+## 
+## however, it's better to run clean_torch.bash first
+##
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

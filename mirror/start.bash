@@ -6,6 +6,10 @@
 ##
 ## in a shared host, keep books of what docker images YOU pulled
 ## Check if the image exists locally
+##
+## in order this to work, you need to be in these groups:
+# sudo usermod -a -G video render wheel docker $USER
+##
 
 # Check if the container exists
 container_id=$(docker ps -aq -f name=^/${container_name}$)

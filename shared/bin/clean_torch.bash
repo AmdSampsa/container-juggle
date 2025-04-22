@@ -1,5 +1,23 @@
 #!/bin/bash
 
+## summary: # in the case someone asks wtf you are doing
+summary='
+rm -rf build
+python setup.py clean
+git reset --hard
+git clean -fd
+git submodule deinit -f third_party/kineto
+rm -rf third_party/x86-simd-sort/
+rm -rf third_party/kleidiai/
+git submodule update --init --recursive
+python tools/amd_build/build_amd.py
+python setup.py develop
+pip uninstall -y torch
+python setup.py install
+'
+
+target="/root/sharedump/out.txt"
+
 auto_yes=false
 for arg in "$@"; do
     if [ "$arg" = "-y" ] || [ "$arg" = "--yes" ]; then
@@ -36,7 +54,7 @@ echo
 if [ "$auto_yes" = true ]; then
     choice="y"
 else
-    echo "Will do git reset --hard and other cleanup and recursive submodule update"
+    echo "Will do git reset --hard (discard non-committed) and other cleanup and recursive submodule update"
     read -p "Continue with cleanup? (y/n): " choice
 fi
 echo
@@ -80,17 +98,28 @@ if [ "$auto_yes" = false ]; then
     read -n1
     echo
 fi
+
+echo " " > $target
+
 if [ ! -z "$PYTORCH_ROCM_ARCH" ]; then
-    python tools/amd_build/build_amd.py &>/root/sharedump/out.txt
+    echo " " >> $target
+    echo ">>>>>1 RUNNING build_amd.py" >> $target
+    echo " " >> $target
+    python tools/amd_build/build_amd.py >> $target 2>&1
+    echo " " >> $target
 fi
+### TIP: look for text "fatal error" if compilation crashes
 echo
 echo COMPILING
 echo
 echo see progress with:
 echo
-echo "tail -f /root/sharedump/out.txt"
-echo 
-python setup.py develop >> /root/sharedump/out.txt 2>&1
+echo "tail -f $target"
+echo
+echo " " >> $target
+echo ">>>>>2 RUNNING SETUP DEVELOP" >> $target
+echo " " >> $target
+python setup.py develop >> $target 2>&1
 if [ $? -ne 0 ]; then
     echo "FATAL"
     echo "Failed to compile"
@@ -98,15 +127,32 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 echo
-echo "#### INSTALL PHASE #####" >> /root/sharedump/out.txt 2>&1
+echo "#### INSTALL PHASE #####" >> $target 2>&1
 echo
 echo RUNNING UNINSTALL
 echo
-pip uninstall -y torch >> /root/sharedump/out.txt 2>&1
+echo " " >> $target
+echo ">>>>>3 RUNNING UNINSTALL" >> $target
+echo " " >> $target
+pip uninstall -y torch >> $target 2>&1
 echo
 echo RUNNING INSTALL
 echo
-python setup.py install >> /root/sharedump/out.txt 2>&1
+echo " " >> $target
+echo ">>>>>4 RUNNING INSTALL" >> $target
+echo " " >> $target
+python setup.py install >> $target 2>&1
+##
+## better idea:
+# python setup.py develop
+## ..but that doesn't really make any difference - this could work:
+## Find your site-packages directory
+#SITE_PACKAGES=$(python -c "import site; print(site.getsitepackages()[0])")
+## Create symbolic links for specific libraries
+#ln -sf /root/pytorch/build/lib/libc10.so $SITE_PACKAGES/torch/lib/
+##
+## for quick-rebuild after modifying the cpp code, please use the "rebuild" alias
+##
 if [ $? -ne 0 ]; then
     echo "FATAL"
     echo "Failed to install"

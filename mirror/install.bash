@@ -1,22 +1,64 @@
 #!/bin/bash
 ## use at SERVER
 ## same directories both at server and client:
+
+
+#!/bin/bash
+
+# Initialize flags with default values
+LATEST=false # pull & compile latest pytorch
+TOOLS=true # cli tools etc.
+SAMPSA=false # my specific confs
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --latest)
+      LATEST=true
+      shift
+      ;;
+    --no-tools)
+      TOOLS=false
+      shift
+      ;;
+    --sampsa)
+      SAMPSA=true
+      shift
+      ;;
+    *)
+      # Unknown option
+      echo "Unknown option: $1"
+      exit 1
+      ;;
+  esac
+done
+
 # mkdir -p $HOME/shared && mkdir -p $HOME/shared/notebook && mkdir -p $HOME/shared/script && mkdir -p $HOME/shared/bin
 ## .. as should be done by prepare.bash
 ## so this script we should only run after the container is running, i.e. after start.bash
 ## install some stuff into the container
-echo "Installing emacs, less, etc. into container"
-docker exec $container_name /bin/sh -c '
-    apt-get update &&
-    apt-get install -y emacs less colorized-logs silversearcher-ag tree dialog psmisc ccache ssh iputils-ping
+
+if [ "$TOOLS" = true ]; then
+  echo "Installing emacs, less, etc. into container"
+  docker exec $container_name /bin/sh -c '
+      (apt-get update && 
+      apt-get install -y emacs less colorized-logs silversearcher-ag tree dialog psmisc ccache ssh iputils-ping psmisc) || 
+      (yum install -y emacs less the_silver_searcher tree dialog psmisc ccache openssh iputils psmisc)
+  '
+  docker exec $container_name /bin/sh -c '
+    (apt-get install -y sqlite3 libsqlite3-dev libfmt-dev) || 
+    (yum install -y sqlite sqlite-devel fmt-devel)
 '
-echo "Installing github tools"
-docker exec $container_name /bin/sh -c '
-  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg &&
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null &&
-  apt update &&
-  apt install gh
-'
+fi
+
+#echo "Installing github tools"
+#docker exec $container_name /bin/sh -c '
+#  curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg &&
+#  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null &&
+#  apt update &&
+#  apt install gh
+#'
+
 echo "Installing some python packages"
 docker exec $container_name pip install jupyter tabulate ruff pyflakes autoflake pytest-xdist
 ## prepare git at server and client
@@ -55,7 +97,6 @@ docker cp ~/shared/launch.json $container_name:/root/.vscode/launch.json
 ## let's not do this: user needs to enforce this with source
 # docker exec $container_name /bin/sh -c "echo 'source /root/shared/bin/buildenv.bash' >> /root/.bashrc"
 ## -> set some env variables for the build environment
-docker exec $container_name /bin/sh -c 'apt-get install sqlite3 libsqlite3-dev libfmt-dev -y'
 
 # Function to detect GPU vendor
 detect_gpu_vendor() {
@@ -97,7 +138,15 @@ EOF
 # echo "source mirror/env.bash" >> .bashrc
 ## .. done by prepare.bash
 
-if [ "$1" = "--latest" ]; then  
+if [ "$SAMPSA" = true ]; then
+  echo "APPLYING SAMPSA'S SPECIFIC CONFIGS"
+  docker exec -it $container_name /bin/bash -c '
+  git config --global core.editor "emacs"
+  echo "(setq make-backup-files nil)" > /root/.emacs
+  '
+fi
+
+if [ "$LATEST" = true ]; then
   echo
   echo "INSTALLING & COMPILING LATEST PYTORCH AND TRITON 3.3.x"
   echo

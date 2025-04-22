@@ -11,6 +11,10 @@ set | grep -E 'TORCH|ROCM|CUDA|DEBUG'
 echo
 echo "PYTHON & TORCH ENV"
 echo
+echo "*** THOU python COMMAND SHALL THUS USE ***"
+which python
+echo "******************************************"
+echo
 python3 -c "
 import sys
 print('Python version:')

@@ -16,3 +16,4 @@ tmux kill-server;
 mv ~/mirror/context/$1.bash ~/mirror/context/removed/$1.bash
 # try to remove th workspace file .. if it exists
 # rm -f $HOME/wrkspaces/$1-container.code-workspace
+rm -f ~/wrkspaces/$1.code-workspace

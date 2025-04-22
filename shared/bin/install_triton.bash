@@ -38,7 +38,10 @@ elif [ "$1" = "--commit" ]; then
     fi
     git checkout $HASH
 else
+    git checkout main
+    git pull
     git checkout release/$1
+    git pull
     if [ $? -ne 0 ]; then
         echo "Command failed"
         echo "NOTE: release tags are for example: 3.2.x (not 3.2.0 etc.)"

@@ -35,6 +35,9 @@ export PS1='[$contextname->Container]/\W> '
 alias indbg='rm -rf /tmp/torchinductor_root && rm -rf torch_compile_debug && TORCH_COMPILE_DEBUG=1 python'
 alias tridbg='rm -rf /tmp/torchinductor_root && rm -rf torch_compile_debug && rm -rf ~/.triton/cache && TORCH_COMPILE_DEBUG=1 python'
 alias indrun='rm -rf /tmp/torchinductor_root && python'
+## 
+alias rebuild='saved=$PWD && cd /root/pytorch/build && ninja -v -j16 && cd /root/pytorch && python setup.py develop && cd $SAVED'
+
 ## memfault debugging:
 alias memrun='HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2 HSA_ENABLE_DEBUG=1 python'
 #
@@ -45,6 +48,8 @@ alias lintrun='./venv/bin/lintrunner'
 #
 export BUILD_TEST=0
 export USE_CAFFE2=0
+# for building debug builds
+alias set_debug="export DEBUG=1"
 #
 ## once you have ran get_torch.bash and clean_torch.bash, you can use devenv command"
 alias localenv='export PYTHONPATH=$HOME/pytorch:$PYTHONPATH'

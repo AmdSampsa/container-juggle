@@ -44,6 +44,10 @@ sudo apt-get update &&
 sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping
 sudo yum install -y inotify-tools emacs dialog tmux silversearcher-ag iputils
 '
+# this is needed for modern debians/ubuntus:
+ssh -p "$sshport" $username@"$hostname" '
+sudo apt install python3-venv
+'
 echo "sending custom ssh keys"
 scp -P $sshport -r custom_ssh_keys $username@$hostname:
 echo "setting custom ssh key rights"
@@ -74,7 +78,12 @@ ssh -p "$sshport" $username@"$hostname" '
     if [ "$GPU_VENDOR" = "amd" ]; then
         echo "AMD GPU detected, proceeding with ROCm DLM installation..."
         GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone --depth 1 git@github.com:ROCm/DeepLearningModels.git &&
-        pip3 install -r DeepLearningModels/requirements.txt
+        cd DeepLearningModels &&
+        python3 -m venv venv &&
+        venv/bin/pip install -r requirements.txt
+        echo
+        echo IF YOU RUN DLM DO IT IN THE VIRTUALENV
+        echo
     else
         echo "No AMD GPU detected, skipping DLM installation"
         exit 1
