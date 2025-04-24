@@ -186,6 +186,9 @@ tmux.bash
 
 Now we have a persistent tmux session that never dies even if the ip connection goes sour.
 
+**WARNING:** In the following, we assume that in the container you are the `root` user.  If this is not the case, I can't guarantee that the rest of the commands here work properly.
+The commands we're about to use, force the `root` user.
+
 Next, let's continue by starting the container at REMOTEHOST:
 ```bash
 start.bash
