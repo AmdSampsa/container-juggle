@@ -19,6 +19,7 @@ echo NOW ENTERING CONTAINER
 echo
 ## interactive session in a running container
 echo
-echo "docker exec -it "$target_container" bash"
+echo "docker exec -u 0 -it "$target_container" bash"
 echo
-docker exec -it $target_container bash
+docker exec -u 0 -it $target_container bash
+

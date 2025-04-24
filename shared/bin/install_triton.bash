@@ -1,46 +1,102 @@
 #!/bin/bash
 # cd /tmp/
-if [ -z "$1" ]; then
+
+# Initialize variables
+commit=""
+tag=""
+source="triton-lang"
+di=""
+
+# Parse command line arguments
+i=1
+while [ $i -le $# ]; do
+    arg="${!i}"
+    
+    case "$arg" in
+        --commit=*)
+            commit="${arg#*=}"  # Remove everything up to and including the = sign
+            ;;
+        --commit)
+            if [ $((i+1)) -le $# ]; then
+                i=$((i+1))
+                commit="${!i}"
+            else
+                echo "Error: --commit requires a value"
+                exit 1
+            fi
+            ;;
+        --head)
+            commit="head"
+            ;;
+        -*)
+            echo "Error: Unknown option $arg"
+            exit 1
+            ;;
+        *)
+            # First non-option argument could be a tag or source
+            if [ -z "$tag" ] && [ -z "$commit" ]; then
+                # If we haven't seen a commit or tag yet, treat this as a tag
+                tag="$arg"
+            elif [ "$source" = "triton-lang" ]; then
+                # If we have seen a tag or commit, and source is still default, update source
+                source="$arg"
+            else
+                echo "Error: Too many arguments"
+                exit 1
+            fi
+            ;;
+    esac
+    
+    i=$((i+1))
+done
+
+# Check if we have a tag or commit
+if [ -z "$tag" ] && [ -z "$commit" ]; then
     echo
     echo "Error: release tag or commit missing"
     echo "Input argument, either just the release tag, i.e.:"
     echo "   3.2.x"
     echo "or define commit with:"
     echo "   --commit HASH"
+    echo "   --commit=HASH"
     echo "or TOT with:"
     echo "   --head"
     exit 1
 fi
-# git clone https://github.com/triton-lang/triton
-if [ ! -d "$HOME/triton" ]; then
-    echo
-    #echo "cloning, but only since 4 weeks - use git fetch --unshallow to fix that"
-    # echo
-    # git clone --shallow-since="4 weeks ago" https://github.com/triton-lang/triton "$HOME/triton"
-    git clone https://github.com/triton-lang/triton "$HOME/triton"
-fi
-cd $HOME/triton
 
-if [ "$1" = "--head" ]; then
+# Set the destination directory
+if [ "$source" = "triton-lang" ]; then
+    di="$HOME/triton"
+else
+    di="$HOME/triton-$source"
+fi
+
+# Clone repository if it doesn't exist
+if [ ! -d "$di" ]; then
+    echo
+    git clone "https://github.com/$source/triton" "$di"
+fi
+cd "$di"
+
+# Handle the different checkout options
+if [ "$commit" = "head" ]; then
     git checkout main
     git pull
     echo
-    echo TOT
+    echo "TOT"
     echo
     git reset --hard HEAD
-elif [ "$1" = "--commit" ]; then
-    if [ -n "$2" ]; then
-        HASH="$2"
-        echo "commit: $HASH"
-    else
-        echo "Error: No hash provided after --commit"
+elif [ -n "$commit" ]; then
+    echo "Checking out commit: $commit"
+    git checkout "$commit"
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to checkout commit $commit"
         exit 1
     fi
-    git checkout $HASH
-else
+elif [ -n "$tag" ]; then
     git checkout main
     git pull
-    git checkout release/$1
+    git checkout "release/$tag"
     git pull
     if [ $? -ne 0 ]; then
         echo "Command failed"
@@ -48,17 +104,8 @@ else
         exit 1
     fi
 fi
-cd $HOME/triton/python
+
+# Install the package
+cd "$di/python"
 pip uninstall -y triton && pip uninstall -y pytorch-triton-rocm && rm -rf ~/.triton
 pip install .
-#cd triton/python # uh.. would need source to this to work
-#echo "NOTE: your compatible triton version can be found in pytorch/.ci/docker/triton_version.txt" 
-#echo "now do:"
-#echo "cd triton/python"
-#echo "git checkout commit-id"
-#echo "or you probably want:"
-#echo "git checkout release/3.1.x"
-#echo "..or just the main (aka tip of triton)"
-#echo "after that (NOTE: you are in triton/python/, not in the triton/ directory):"
-#echo "pip install ."
-#echo

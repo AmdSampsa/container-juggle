@@ -6,7 +6,7 @@ fi
 if [ -z "$2" ]; then
     source="pytorch"
 else
-    source="ROCm"    
+    source=$2
 fi
 
 echo
