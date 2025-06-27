@@ -24,6 +24,7 @@ export PYTHONNOUSERSITE=1
 export PIP_NO_CACHE_DIR=1
 echo "will create venv and install lintrunner therein"
 python -m venv ./venv
+export VIRTUAL_ENV=$(pwd)/venv
 ./venv/bin/pip install lintrunner
 echo "Installing required linters"
 ./venv/bin/lintrunner init

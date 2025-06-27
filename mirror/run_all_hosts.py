@@ -60,7 +60,14 @@ def run_with_context(script_to_run, ssh=False, only=None):
         
         if ssh:
             # 'bash -ic "echo \"Hello World\""'
-            script_to_run_ = f"ssh -q -o LogLevel=QUIET -p{sshport} {username}@{hostname} {script_to_run} 2>/dev/null"
+            # script_to_run_ = f"ssh -q -o LogLevel=QUIET -p{sshport} {username}@{hostname} {script_to_run} 2>/dev/null"
+
+            st = "ssh -q -o LogLevel=QUIET "
+            st += "-o PasswordAuthentication=no "    # Disable password auth entirely
+            st += "-o ConnectTimeout=10 "           # Timeout for initial connection
+            st += "-o StrictHostKeyChecking=no "    # Skip host key verification
+            st +=f"-p{sshport} {username}@{hostname} '{script_to_run}' 2>/dev/null"
+            script_to_run_ = st
             print(">", script_to_run_)
             # script_to_run_ = f"ssh -q -p{sshport} {username}@{hostname} 'source ~/.bashrc && {script_to_run}'"
             # print(script_to_run_)
@@ -92,6 +99,10 @@ Typical use case: run our helper scripts in the remote host: getgpu.bash or for 
 If your command includes spaces, use this kind of comma encapsulation:
 
 run_all_hosts.py --ssh '"ls ~/mirror/.git"'
+
+A tip: to stop all docker containers with the string "kokkelis" in their name in all hosts, do this:
+                                                                          
+run_all_hosts.py --ssh "docker ps -q --filter name=kokkelis | xargs -r docker kill"
 
 """)
     parser.add_argument('script_to_run', help='The script to run')
