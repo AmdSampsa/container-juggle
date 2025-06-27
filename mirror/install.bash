@@ -62,6 +62,13 @@ fi
 #  apt install gh
 #'
 
+docker exec $container_name /root/shared/bin/container-health-check.py
+if [ $? -ne 0 ]; then
+    echo "❌ Container health check failed! Container may have hanging commands."
+    echo "Terminating script to prevent wasting time with problematic container."
+    exit 1
+fi
+
 echo "Installing some python packages"
 docker exec $userflag $container_name pip install jupyter tabulate ruff pyflakes autoflake pytest-xdist
 ## prepare git at server and client

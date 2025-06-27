@@ -40,6 +40,7 @@ else
     exit 1
 fi
 
+export CMAKE_ARGS="-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 ## how about these?
 #export BUILD_TEST=0
 #export USE_CAFFE2=0
@@ -59,9 +60,11 @@ else
 fi
 echo
 if [[ $choice == "y" || $choice == "Y" ]]; then
-    git reset --hard
+    # git reset --hard
+    git reset --hard --recurse-submodules
     ## -> discards everything not committed
     git clean -fd
+    # git clean -fd --recurse-submodules
     ## -> removes all .so and .pyc build artifacts
     # git submodule foreach --recursive 
     # .. that one needs a subcommand
@@ -79,6 +82,7 @@ if [[ $choice == "y" || $choice == "Y" ]]; then
         echo
         exit 1
     fi
+    echo "Did pytorch cleanup at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
     #
     echo
     echo "GIT STATUS:"
@@ -126,6 +130,7 @@ if [ $? -ne 0 ]; then
     echo
     exit 1
 fi
+echo "Did pytorch compile at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
 echo
 echo "#### INSTALL PHASE #####" >> $target 2>&1
 echo
@@ -135,6 +140,14 @@ echo " " >> $target
 echo ">>>>>3 RUNNING UNINSTALL" >> $target
 echo " " >> $target
 pip uninstall -y torch >> $target 2>&1
+if [ $? -ne 0 ]; then
+    echo
+    echo "WARNING"
+    echo "Failed to uninstall"
+    echo
+fi
+echo
+echo "Did pytorch uninstall at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
 echo
 echo RUNNING INSTALL
 echo
@@ -142,6 +155,14 @@ echo " " >> $target
 echo ">>>>>4 RUNNING INSTALL" >> $target
 echo " " >> $target
 python setup.py install >> $target 2>&1
+echo
+if [ $? -ne 0 ]; then
+    echo "FATAL"
+    echo "Failed to install"
+    echo
+    exit 1
+fi
+echo "Did pytorch install at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
 ##
 ## better idea:
 # python setup.py develop

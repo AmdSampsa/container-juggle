@@ -1,4 +1,9 @@
 #!/bin/bash
+/root/shared/bin/container-health-check.py
+if [ $? -ne 0 ]; then
+    echo "❌ Container health check failed!  Will not continue"
+    exit 1
+fi
 ## run with source
 export PATH=$PATH:/root/shared/bin
 export BINDIR=/root/shared/bin
@@ -28,6 +33,8 @@ export SHAREDUMP=/root/sharedump
 # this should be avail if we have logged in correctly:
 export CTXENV=/root/shared/env/$contextname
 ## export CTXENV=    # NOTE: this is set in your .bashrc (was written there by install.bash)
+## torch.compile annoying warnings off:
+export TORCHINDUCTOR_COMPILE_FLAGS="-Wl,-z,noexecstack"
 ## better prompt
 # export PS1='[$contextname->Container:\h]/\W> '
 export PS1='[$contextname->Container]/\W> '
@@ -37,7 +44,11 @@ alias tridbg='rm -rf /tmp/torchinductor_root && rm -rf torch_compile_debug && rm
 alias indrun='rm -rf /tmp/torchinductor_root && python'
 ## 
 alias rebuild='saved=$PWD && cd /root/pytorch/build && ninja -v -j16 && cd /root/pytorch && python setup.py develop && cd $SAVED'
-
+## to actually see wtf went wrong:
+alias debuild='saved=$PWD && cd /root/pytorch/build && MAX_JOBS=1 ninja -v -j1 && cd $SAVED'
+## ..if can't find numpy, do this:
+alias numpydeb='ln -sf $(python -c "import numpy; print(numpy.get_include() + \"/numpy\")") /usr/include/'
+##
 ## memfault debugging:
 alias memrun='HSA_TOOLS_LIB=/opt/rocm/lib/librocm-debug-agent.so.2 HSA_ENABLE_DEBUG=1 python'
 #
@@ -45,7 +56,9 @@ alias subinit='git submodule deinit -f third_party/kineto && git submodule deini
 #
 ## alias for running lintrunner inside the virtualenv
 alias lintrun='./venv/bin/lintrunner'
-#
+# login to docker with env vars:
+alias dockerlog='docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"'
+##
 export BUILD_TEST=0
 export USE_CAFFE2=0
 # for building debug builds
@@ -81,7 +94,8 @@ detect_gpu_and_set_arch() {
         # this god'damn env variable is not set in the nightly containers
         export PYTORCH_TEST_WITH_ROCM=1
         echo "Set PYTORCH_ROCM_ARCH=$PYTORCH_ROCM_ARCH"
-        echo "Set PYTORCH_TEST_WITH_ROCM=$PYTORCH_TEST_WITH_ROCM"
+        # echo "Set PYTORCH_TEST_WITH_ROCM=$PYTORCH_TEST_WITH_ROCM"
+        echo "WARNING: NOT SETTING PYTORCH_TEST_WITH_ROCM NOR TEST_WITH_ROCM"
         return 0
     fi
 

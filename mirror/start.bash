@@ -62,7 +62,7 @@ else
     fi
 
     # Create the command string
-    docker_cmd="docker run -d \
+    docker_cmd="docker run --user root -d \
         --name $container_name \
         -p 9999:9999 \
         $DOCKER_GPU_FLAGS \

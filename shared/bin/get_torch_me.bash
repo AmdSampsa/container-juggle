@@ -16,7 +16,8 @@ ORIGINAL_REPO="https://github.com/pytorch/pytorch.git"
 YOUR_BRANCH="main"
 ORIGINAL_BRANCH="main"
 
-since="4 weeks ago"
+# since="4 weeks ago"
+since="2 years ago ago"
 
 echo
 echo Getting latest pytorch main from YOUR repo $gituser

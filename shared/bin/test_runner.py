@@ -5,6 +5,71 @@ import sys
 from pathlib import Path
 import yaml
 from typing import Dict, List, Optional
+import os
+
+"""for example
+
+This scripts runs each test listed in a text file individually and captures its stdout and stderr and error codes.
+Based on the error category (depending on the output and the error code), it sorts the errors into different subdirectories.  These are at the moment:
+
+hwfail, fail, success
+
+capturing stderr and error code makes it possible to judge if this is a hwfailure or not
+
+Results are collected into "results.txt" - which you can use again as an input for this very same script
+
+Example command:
+
+::
+
+    test_runner.py --format=table --writepath=. --run table.csv 
+
+where table.csv has this format:
+
+::
+
+    ## OPINFO MEMLEAKS
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_sort_cuda_bool
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_argsort_cuda_bool
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_msort_cuda_bool
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_nanmean_cuda_float32
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_nn_functional_max_unpool2d_cuda_float16
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_nanmean_cuda_float16
+    ## OPINFO INACCURACIES
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_unfold_copy_cuda_float64
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_unfold_copy_cuda_float32
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_nn_functional_pairwise_distance_cuda_float16
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_logsumexp_cuda_float16
+    ## OPINFO QUANTILE INACCURACIES
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_quantile_cuda_float32
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_nanquantile_cuda_float32
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_quantile_cuda_float64
+    inductor.test_torchinductor_opinfo      TestInductorOpInfoCUDA  test_comprehensive_nanquantile_cuda_float64
+
+you might need to run spaces2tabs.bash to convert spaces to tabs for one of the formats.
+
+You might want to use this program with this kind of script:
+
+::
+
+    #!/bin/bash
+
+    # Configuration
+    save=$PWD
+    wrkdir="/var/lib/jenkins/pytorch/test"
+    fname="failed.txt"
+
+    # Environment variables
+    export TEST_WITH_ROCM=1
+    export TORCH_ROCM_AOTRITON_ENABLE_EXPERIMENTAL=0
+
+    cd $save && rm -rf results.txt success fail hwfail
+
+    cd $wrkdir && test_runner.py $save/$fname --format table --run --writepath=$save
+    cd $save
+
+
+"""
 
 class TestRunner:
     def __init__(self, config_file: str, format_type: str = 'auto'):
@@ -83,6 +148,7 @@ class TestRunner:
                 # module_file, class_name, test_method = line.split('\t')
                 module_file, class_name, test_method = line.split(None)
                 module_parts = module_file.split('.')
+                ## TODO: check if already has .py - that should be allowed
                 file_path = f"{'/'.join(module_parts)}.py"
                 
                 if file_path not in config:
@@ -138,11 +204,16 @@ class TestRunner:
         return commands
 
     
-    def run_tests(self, repeat: Optional[int] = None) -> None:
+    def run_tests(self, repeat, writepath) -> None:
         """Run all tests in the configuration."""
         commands = self.generate_test_commands()
         results = {}  # Store test results
-        
+
+        #if writepath:
+        Path(f"{writepath}/hwfail").mkdir(exist_ok=True)
+        Path(f"{writepath}/fail").mkdir(exist_ok=True)
+        Path(f"{writepath}/success").mkdir(exist_ok=True)
+
         for cmd in commands:
             print(">cmd", cmd)
             # Convert command back to tab format for result tracking
@@ -150,10 +221,13 @@ class TestRunner:
             class_name = cmd.split()[2].split('.')[0]
             test_name = cmd.split()[2].split('.')[1]
             test_id = f"{module_path}\t{class_name}\t{test_name}"
-            
+            test_seg_path = Path(f"{module_path}.{class_name}.{test_name}.txt")
+
             test_passed = True
             test_skipped = False
             
+            # print(">>>", os.environ["PYTORCH_TEST_WITH_ROCM"])
+
             for iteration in range(repeat or 1):
                 print(f"\n{'='*80}\nRunning: {cmd} (Iteration {iteration + 1}/{repeat or 1})\n{'='*80}")
                 try:
@@ -165,9 +239,8 @@ class TestRunner:
                         bufsize=1,
                         universal_newlines=True
                     )
-                    
                     # Collect all output to check for "skipped"
-                    output_lines = []
+                    output_lines = ""
                     while True:
                         output = process.stdout.readline()
                         if output == '' and process.poll() is not None:
@@ -175,30 +248,62 @@ class TestRunner:
                         if output:
                             output_line = output.rstrip()
                             print(output_line)
-                            output_lines.append(output_line.lower())
+                            output_lines += output_line + "\n"
                             
                     return_code = process.poll()
                     if return_code != 0:
                         test_passed = False
-                    if any('skipped' in line for line in output_lines):
+                    if any('skipped' in line for line in output_lines.lower()):
                         test_skipped = True
+
+                    # print("RETURN CODE>", return_code)
                         
                 except subprocess.CalledProcessError as e:
                     print(f"Error running test: {e}", file=sys.stderr)
                     print("Exit code:", e.returncode, file=sys.stderr)
                     test_passed = False
-            
+
             # Store the final result
             if test_skipped:
                 results[test_id] = "SKIP"
+            elif return_code < 0:
+                results[test_id] = "HWFAIL"
+                #if writepath:
+                p = Path(f"{writepath}/hwfail") / test_seg_path
+                with open(p, "w") as f:
+                    f.write(output_lines)
+            elif return_code > 0:
+                results[test_id] = "FAIL"
+                #if writepath:
+                p = Path(f"{writepath}/fail") / test_seg_path
+                with open(p, "w") as f:
+                    f.write(output_lines)
             else:
-                results[test_id] = "OK" if test_passed else "FAIL"
+                results[test_id] = "OK"
+                #if writepath:
+                p = Path(f"{writepath}/success") / test_seg_path
+                with open(p, "w") as f:
+                    f.write(output_lines)
         
         # Print summary at the end
         print("\n\nTest Summary:")
         print("="*80)
+        # TODO: we could add here lots of autodetected categories
         for test_id, result in results.items():
             print(f"{test_id} # {result}")
+        with open(f"{writepath}/results.txt","w") as f:
+            f.write(f"#HWFAIL\n")
+            for test_id, result in results.items():
+                if result == "HWFAIL":
+                    f.write(f"{test_id}\n")
+            f.write(f"#FAIL\n")
+            for test_id, result in results.items():
+                if result == "FAIL":
+                    f.write(f"{test_id}\n")
+            f.write(f"#OK\n")
+            for test_id, result in results.items():
+                if result == "OK":
+                    f.write(f"{test_id}\n")
 
 
     def generate_markdown(self, include_issues: bool = False) -> str:
@@ -226,6 +331,7 @@ class TestRunner:
 def main():
     parser = argparse.ArgumentParser(description='PyTorch test runner')
     parser.add_argument('config_file', help='Path to the test configuration file')
+    parser.add_argument('--writepath', required=True, default=None, help="write output from failing tests into this dir")
     parser.add_argument('--run', action='store_true', help='Run the tests')
     parser.add_argument('--print', action='store_true', help='Print markdown documentation')
     parser.add_argument('--repeat', type=int, help='Number of times to repeat each test')
@@ -239,7 +345,7 @@ def main():
     runner = TestRunner(args.config_file, format_type=args.format)
     
     if args.run:
-        runner.run_tests(args.repeat)
+        runner.run_tests(args.repeat, args.writepath)
     
     if args.print:
         print(runner.generate_markdown(include_issues=args.find_issues))

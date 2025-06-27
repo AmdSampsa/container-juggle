@@ -74,9 +74,18 @@ fi
 # Clone repository if it doesn't exist
 if [ ! -d "$di" ]; then
     echo
-    git clone "https://github.com/$source/triton" "$di"
+    git clone --shallow-since="3 months ago" "https://github.com/$source/triton" "$di"
+    ## shallow clone not a good idea!  messes all up
+    ## shallow cloning with branches and tags might work with this:
+    ## -> ok now it works with the below fix
+    #git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+    #git fetch --all
+    # git clone "https://github.com/$source/triton" "$di"
 fi
 cd "$di"
+
+git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+git fetch --all
 
 # Handle the different checkout options
 if [ "$commit" = "head" ]; then

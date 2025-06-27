@@ -43,6 +43,14 @@ print(torch.__config__.show())
 echo 
 echo CHECKING TORCHVISION
 python3 -c "import torchvision"
+if [ $? -ne 0 ]; then
+    echo "importing tochvision failed"
+    pip freeze | grep -i "torchvision"
+    read -p "Would you like to install torchvision from git? " answer
+    if [[ $answer == [Yy]* ]]; then
+        install_torchvision.bash
+    fi
+fi
 echo
 # Check if pytorch directory exists
 if [ -d "$HOME/pytorch" ]; then

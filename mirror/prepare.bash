@@ -29,20 +29,45 @@ ssh -p "$sshport" $username@"$hostname" "echo \"export gitname=$gitname\" >> ~/.
 echo "making some directories"
 ssh -p "$sshport" $username@"$hostname" 'mkdir -p mirror && mkdir -p shared/env && mkdir -p shared/pythonenv && mkdir -p shared/notebook && mkdir -p shared/script && mkdir -p shared/bin && mkdir -p sharedump'
 ## NOTE: we take env variables from the local environment (but they should be same at the remote):
-echo "setting up git"
+echo "configuring git, tmux and emacs"
 ssh -p "$sshport" "$username@$hostname" "
 git config --global user.name '${gitname}' &&
 git config --global user.email '${gitemail}' &&
 cat << EOF > \$HOME/.tmux.conf
 set -g mouse on
+# Enable xterm-style key sequences
+set-window-option -g xterm-keys on
+# Enable focus events (helps with editor integration)
+set -g focus-events on
+EOF
+cat << EOF > \$HOME/.emacs.d/init.el
+;; Disable backup files
+(setq make-backup-files nil)
+(setq backup-inhibited t)
+(setq auto-save-default nil)
 EOF
 "
 echo "apt-get/yum installing some"
 # keep in mind that this might be redhat or even centos! -> use yum
+#ssh -p "$sshport" $username@"$hostname" '
+#sudo apt-get update && 
+#sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping zip ||
+#sudo yum install -y inotify-tools emacs dialog tmux silversearcher-ag iputils zip
+#'
 ssh -p "$sshport" $username@"$hostname" '
-sudo apt-get update && 
-sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping
-sudo yum install -y inotify-tools emacs dialog tmux silversearcher-ag iputils
+if command -v apt-get >/dev/null 2>&1; then
+    echo "Detected Debian/Ubuntu - using apt-get"
+    sudo apt-get update && sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping zip
+elif command -v yum >/dev/null 2>&1; then
+    echo "Detected RedHat/CentOS - using yum"
+    sudo yum install -y inotify-tools emacs dialog tmux silversearcher-ag iputils zip
+elif command -v dnf >/dev/null 2>&1; then
+    echo "Detected Fedora - using dnf"
+    sudo dnf install -y inotify-tools emacs dialog tmux silversearcher-ag iputils zip
+else
+    echo "No supported package manager found!"
+    exit 1
+fi
 '
 # this is needed for modern debians/ubuntus:
 ssh -p "$sshport" $username@"$hostname" '

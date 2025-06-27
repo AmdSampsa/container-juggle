@@ -40,7 +40,17 @@ def get_disk_space(ssh: paramiko.SSHClient) -> str:
     except Exception as e:
         return f"Error getting disk space: {str(e)}"
 
-def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, str, bool, str, str]:
+def get_datetime(ssh: paramiko.SSHClient) -> str:
+    """Check that datetime is ok in the machine
+    
+    Returns:
+        String containing disk usage information or error message
+    """
+    stdin, stdout, stderr = ssh.exec_command("date --utc")
+    output = stdout.readlines()[0]
+    return output
+
+def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, str, bool, str, str, str]:
     """Test SSH connection to a host and check disk space
     
     Args:
@@ -56,13 +66,15 @@ def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, str, bool, st
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     
+    print(f"ssh -vvv {config['username']}@{host}")
+
     try:
         # First test if port is open
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.settimeout(5)
         result = sock.connect_ex((host, port))
         if result != 0:
-            return host, nickname, False, f"Port {port} is closed", ""
+            return host, nickname, False, f"Port {port} is closed", "", ""
         sock.close()
         
         # Then try SSH connection
@@ -75,18 +87,18 @@ def test_ssh_connection(host_info: Tuple[str, Dict]) -> Tuple[str, str, bool, st
         
         # Get disk space information if connection successful
         disk_space = get_disk_space(ssh)
+        datetime = get_datetime(ssh)
         # return host, nickname, True, "Connection successful", disk_space
-        return host, nickname, True, "", disk_space
-        
+        return host, nickname, True, "", disk_space, datetime
     
     except socket.gaierror:
-        return host, nickname, False, "DNS lookup failed", ""
+        return host, nickname, False, "DNS lookup failed", "", ""
     except paramiko.AuthenticationException:
-        return host, nickname, False, "Authentication failed", ""
+        return host, nickname, False, "Authentication failed", "", ""
     except (socket.timeout, paramiko.SSHException) as e:
-        return host, nickname, False, f"Connection failed: {str(e)}", ""
+        return host, nickname, False, f"Connection failed: {str(e)}", "", ""
     except Exception as e:
-        return host, nickname, False, f"Error: {str(e)}", ""
+        return host, nickname, False, f"Error: {str(e)}", "", ""
     finally:
         ssh.close()
 
@@ -107,11 +119,12 @@ def test_all_connections(config):
         }
         
         for future in as_completed(future_to_host):
-            host, nickname, success, message, disk_space = future.result()
+            host, nickname, success, message, disk_space, datetime = future.result()
             status = "✓" if success else "✗"
             print(f"{status} {nickname} (aka {host}): {message}")
             if disk_space:
                 print(f"   Disk Space: {disk_space}")
+                # print(f"   UTF time  : {datetime}")
     
     print("-" * 70)
 
@@ -119,16 +132,22 @@ def main():
     parser = argparse.ArgumentParser(
         description="SSH connection utility using YAML config"
     )
-    group = parser.add_mutually_exclusive_group(required=True)
+    # group = parser.add_mutually_exclusive_group(required=True)
+    group = parser
     group.add_argument(
-        "host_nickname",
-        nargs="?",
+        "-n",
+        default=None,
         help="Nickname of the host to connect to"
     )
     group.add_argument(
         "-t", "--test",
         action="store_true",
         help="Test connections to all hosts and show disk space"
+    )
+    group.add_argument(
+        "-c",
+        default=None,
+        help="Just run a command instead of connecting"
     )
     
     args = parser.parse_args()
@@ -139,26 +158,32 @@ def main():
         print(f"Error loading config file: {e}")
         sys.exit(1)
 
-    if args.test:
+    if args.n is None and args.test:
         test_all_connections(config)
         sys.exit(0)
 
-    if args.host_nickname not in config['hosts']:
-        print(f"Error: Host nickname '{args.host_nickname}' not found in config")
+    if args.n is None:
+        print("needs host nickname")
+        sys.exit(2)
+
+    if args.n not in config['hosts']:
+        print(f"Error: Host nickname '{args.n}' not found in config")
         print("Available hosts:")
         for host in config['hosts'].keys():
             print(f"  {host}")
         sys.exit(1)
 
-    host_config = config['hosts'][args.host_nickname]
+    host_config = config['hosts'][args.n]
     username = config['username']
     host = host_config['host']
     port = host_config['sshport']
 
-    print(f"Connecting to {args.host_nickname} ({host}) as {username}...")
+    print(f"Connecting to {args.n} ({host}) as {username}...")
     
     # Execute SSH command
     ssh_cmd = ['ssh', '-p', str(port), f"{username}@{host}"]
+    if args.c:
+        ssh_cmd.append(args.c)
     os.execvp('ssh', ssh_cmd)
 
 if __name__ == "__main__":
