@@ -16,23 +16,37 @@ else
     echo ".bash_profile already exists"
 fi
 '
-echo "modding .bashrc"  # Fixed typo in echo message
-ssh -p "$sshport" $username@"$hostname" 'echo "
-# If not running interactively, dont do anything
+
+echo "modding .bashrc"
+ssh -p "$sshport" $username@"$hostname" "
+  # Remove existing section if it exists
+  if grep -q '#CONTAINER-JUGGLE>' ~/.bashrc; then
+    sed -i '/#CONTAINER-JUGGLE>/,\$d' ~/.bashrc
+  fi
+  
+  # Add new section
+  echo '#CONTAINER-JUGGLE>' >> ~/.bashrc
+  echo '# If not running interactively, dont do anything
 case \$- in
     *i*) ;;
       *) return;;
-esac" >> ~/.bashrc'
-ssh -p "$sshport" $username@"$hostname" 'echo "source mirror/env.bash" >> ~/.bashrc'
-ssh -p "$sshport" $username@"$hostname" "echo \"export gitname=$gitname\" >> ~/.bashrc"
-# ssh -p "$sshport" $username@"$hostname" 'echo "source mirror/context/'$contextname'.bash" >> ~/.bashrc' # NOT THIS!  login script will take care of this
+esac' >> ~/.bashrc
+  echo 'source mirror/env.bash' >> ~/.bashrc
+  echo 'source shared/secret/env.bash' >> ~/.bashrc
+"
+
 echo "making some directories"
 ssh -p "$sshport" $username@"$hostname" 'mkdir -p mirror && mkdir -p shared/env && mkdir -p shared/pythonenv && mkdir -p shared/notebook && mkdir -p shared/script && mkdir -p shared/bin && mkdir -p sharedump'
 ## NOTE: we take env variables from the local environment (but they should be same at the remote):
-echo "configuring git, tmux and emacs"
+## TODO: instead, create a .gitconfig to laptop's home and copy it around. also document this into container-juggle.
+#
+echo "Remote-copying git config files"
+scp -P "$sshport" "$HOME"/shared/secret/.*gitconfig* "$username@$hostname":
+#
+echo "configuring tmux and emacs"
+#git config --global user.name '${gitname}' &&
+#git config --global user.email '${gitemail}' &&
 ssh -p "$sshport" "$username@$hostname" "
-git config --global user.name '${gitname}' &&
-git config --global user.email '${gitemail}' &&
 cat << EOF > \$HOME/.tmux.conf
 set -g mouse on
 # Enable xterm-style key sequences

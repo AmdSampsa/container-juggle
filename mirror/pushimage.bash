@@ -16,6 +16,9 @@ echo "-> to remove all extra env variables"
 echo "(2) inside the container: remprivate.bash:"
 echo "-> to remove your private ssh keys"
 echo
+echo
+echo WARNING WARNING WARNING: DOUBLE-CHECK THAT THIS SCRIPT ACTUALLY PUSHES
+echo
 read -p "press enter to continue, CTRL-C to abort"
 echo
 if [ -z "$1" ]; then

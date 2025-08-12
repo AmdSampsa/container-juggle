@@ -1,5 +1,20 @@
 ## Install VSCode remote development tools
 
+### Syncing all vscode instances
+
+We'll be installing vscode extensions into:
+
+- (1) vscode as running on your windoze machine
+- (2) vscode as running on your windows wsl
+- (3) running on the remote host
+- (4) running in a container running in the remote host
+
+We want the vscode extensions to be synced across all these.  The best way is to install them into (1) and then let vscode to "propagate" them
+to all the way to (4).
+
+Open command palette at (1): `Ctrl+Shift+P` and then look fo "Settings Sync: Turn On".  You will be prompted to login to a github account.
+After this everything you install in (1), will be found in (2-4) as well.
+
 ### Using VSCode with WSL linux
 
 Don't open files directly from the WSL disk space (that way nothing works), but install the "WSL" extension and open our linux WSL disk space

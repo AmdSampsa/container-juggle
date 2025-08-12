@@ -2,7 +2,7 @@
 
 Here we explain the shared-mount scheme and all the helper scripts.
 
-Helper scripts are automatically on your PATH, so they just run.
+Helper scripts are automatically on your PATH, so they *just run*.
 
 **WARNING:** you don't need to worry too much about these nor the directory scheme: the underlying
 scripts and framework expose the directories and load correct env variables for you in the container
@@ -14,21 +14,27 @@ However, said all that it is also important that you know what's going on under-
 
 *Taming your containers*
 
-
 ### A. Common directories
 
 Directories in LOCALHOST, REMOTEHOST and shared-mounts into CONTAINER:
 ```bash
 mirror/         # in LOCALHOST and REMOTEHOST
-                # in your PATH everywhere
+                # in your $PATH in LOCALHOST and REMOTEHOST
     context/    # context files
+    env.bash    # environment variable file loaded in LOCALHOST and REMOTEHOST
 shared/         # in LOCALHOST, REMOTEHOST and shared mount in CONTAINER
     bin/
-                # in your PATH everywhere
+                # in your $PATH everywhere (LOCALHOST, REMOTEHOST, CONTAINER)
         contenv.bash
-                # environment variable filed loaded when you enter 
-                # the container
-
+                # environment variable file loaded/sourced when you enter/login 
+                # CONTAINER
+    secret/
+        env.bash
+                # loaded/sourced when you enter/login REMOTEHOST or CONTAINER
+                # i.e. these env variables are avail in both
+        .gitconfig
+        .gitconfig-other
+                # -> copied to your $HOME both in REMOTEHOST and CONTAINER
 sharedump/      # in REMOTEHOST and shared mount in CONTAINER
 ```
 
@@ -36,6 +42,9 @@ sharedump/      # in REMOTEHOST and shared mount in CONTAINER
 
 ```bash
 /root/
+    .bashrc     # loads /root/shared/bin/contenv.bash 
+                # and /root/shared/secrent/env.bash
+                # when you enter the container
     shared/      # see (A) - also in your CONTAINER(s) PATH
     sharedump/   # see (A)
     # OPTIONAL:
@@ -46,8 +55,6 @@ sharedump/      # in REMOTEHOST and shared mount in CONTAINER
     pytorch-me/ # your personal branch
     pytorch-etc/  
                 # whatever other branches
-
-    .basrch     # loads /root/shared/bin/contenv.bash when you enter the container
 ```
 
 ### C. Scripts

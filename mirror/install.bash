@@ -76,11 +76,17 @@ docker exec $userflag $container_name pip install jupyter tabulate ruff pyflakes
 #git config --global user.name "${gitname}"
 #git config --global user.email "${gitemail}"
 ## prepare git at the container
-echo "Configuring git"
-docker exec $userflag $container_name /bin/sh -c "
-git config --global user.name '${gitname}' && 
-git config --global user.email '${gitemail}'
-"
+# echo "Configuring git"
+#docker exec $userflag $container_name /bin/sh -c "
+#git config --global user.name '${gitname}' && 
+#git config --global user.email '${gitemail}'
+#"
+echo "Copying git config files"
+for file in $HOME/shared/secret/.*gitconfig*; do
+  echo $file
+  docker cp "$file" $container_name:/root/
+done
+#
 echo "Setting ssh keys"
 docker exec $userflag $container_name mkdir -p /root/.ssh
 # copy ssh keys to container
@@ -95,10 +101,14 @@ docker exec $userflag $container_name chmod 644 /root/.ssh/id_rsa.pub
 shred -u -n 3 ssh_temp/*
 rm -rf ssh_temp
 echo "setting env"
-## modify container exec path for (shell) sessions in the container:
-docker exec $userflag $container_name /bin/sh -c "echo \"export contextname=$contextname\" >> /root/.bashrc"
-docker exec $userflag $container_name /bin/sh -c "echo \"export gituser=$gituser\" >> ~/.bashrc"
-docker exec $userflag $container_name /bin/sh -c "echo 'source /root/shared/bin/contenv.bash' >> /root/.bashrc"
+docker exec $userflag $container_name /bin/sh -c "
+  # Remove from marker onwards, then add new content
+  sed -i '/#CONTAINER-JUGGLE>/,\$d' /root/.bashrc
+  echo '#CONTAINER-JUGGLE>' >> /root/.bashrc
+  echo 'export contextname=$contextname' >> /root/.bashrc  
+  echo 'source /root/shared/bin/contenv.bash' >> /root/.bashrc
+  echo 'source /root/shared/secret/env.bash' >> /root/.bashrc
+"
 # docker exec $userflag $container_name /bin/sh -c "echo \"export CTXENV=/root/shared/env/$contextname\" >> ~/.bashrc" # -> NOPES: we do this now when logging with ssh and in contenv.bash
 ## -> that scripts added /root/shared/bin/ into the exec search path
 ## copy gdb config file in-place:
@@ -151,7 +161,6 @@ EOF
 if [ "$SAMPSA" = true ]; then
   echo "APPLYING SAMPSA'S SPECIFIC CONFIGS"
   docker exec $userflag -it $container_name /bin/bash -c '
-  git config --global core.editor "emacs"
   echo "(setq make-backup-files nil)" > /root/.emacs
   '
 fi

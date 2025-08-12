@@ -61,7 +61,9 @@ Sorry for the inconvenience, but you have to `cp -r` directories `mirror/` and `
 sudo apt-get update && sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping python3-pip python3-paramiko
 ```
 
-#### c. Create custom ssh keys
+#### c. Create custom ssh keys and secrets
+
+*SSH KEYS*
 
 Create a custom ssh keypair.  This is used for your remote host(s) authentication into github, both from REMOTEHOST and from withint CONTAINER
 ```bash
@@ -69,6 +71,17 @@ mkdir -p custom_ssh_keys && ssh-keygen -t rsa -b 4096 -f ~/custom_ssh_keys/id_rs
 ```
 (just press enter few times for no passphrase).  Copy-paste `custom_ssh_keys/id_rsa.pub` into your github account, using github's web UI.  After adding the key, remember to click the
 "configure SSO" dropdown menu in web UI and therein authorize your workspace, etc.
+
+*SECRETS*
+
+Write down your secret env variables that are going to be used across the system: both in your REMOTEHOST and CONTAINER(s):
+```bash
+$HOME/ # your linux homedir in windows WSL
+    shared/
+        secret/
+            env_template.bash # -> copy this to env.bash and fill in the details
+            gitconfig_template # -> copy this to .gitconfig and fill in the details
+```
 
 #### d. bashrc
 
@@ -80,6 +93,9 @@ it adds a line into your `~/.bashrc`.  Tadaa - now you can access all executable
 
 In order for that to take effect, you now need to restart your WSL terminal(s)
 
+
+
+
 #### e. context template
 
 A **"context"** is a set of parameters, defining a **remote host + docker image name + container name**, i.e. it uniquely defines your working environment.
@@ -88,20 +104,13 @@ Let's create a personalized template for just that with your username, etc:
 ```bash
 cp ~/mirror/context/ctx_scaffold.bash ~/mirror/context/my_scaffold.bash
 ```
-After that, edit your personalized `my_scaffold.bash` and fill in these fields:
+After that, edit your personalized `my_scaffold.bash` and fill in this field:
 ```bash
 # ...
 export username=
 # ...
-export gituser=
-export gitname=
-export gitemail=
-export GH_TOKEN= ## github token for gh tools easy access
-export DOCKER_USER= ## docker credentials for pushing stuff to a registry
-export DOCKER_PASS= ##
-export DOCKER_REG= ## docker registry
 ```
-Needless to say, don't spread these around.
+with your username to the clusters
 
 #### f. host records
 
