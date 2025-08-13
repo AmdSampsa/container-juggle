@@ -12,12 +12,5 @@ export image_id= ## name of the docker image
 export hostname= ## name of your remote host
 export hostnick= ## host nickname .. for vscode etc.
 export sshport=22 ## port for ssh connections
-export gituser= ## i.e. under what tag are your repos
-export gitname= ## firstname surname
-export gitemail= ## email
-export GH_TOKEN= ## github token for gh tools easy access OPTIONAL
-export DOCKER_USER= ## docker credentials for pushing stuff to a registry OPTIONAL
-export DOCKER_PASS= ## docker password
-export DOCKER_REG= ## name of your docker registry
 ## set terminal title
 echo -e "\033]0;"$contextname"\007"
