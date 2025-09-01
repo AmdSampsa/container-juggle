@@ -4,6 +4,10 @@ echo
 # let's do this instead:
 cd $HOME
 echo
+
+echo "ROCM VERSION IS.."
+echo
+readlink -f /opt/rocm | sed 's/.*rocm-//'
 echo
 echo "RELEVANT BUILD FLAGS"
 echo

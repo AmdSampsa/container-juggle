@@ -12,6 +12,12 @@ alias tlsa="ssh -p\$sshport \$username@\$hostname tmux ls 2>/dev/null"
 # alias tlgnew='source ~/.latest_ctx.bash && tloginew.bash' # nopes
 alias slast="source ~/.latest_ctx.bash && echo \$contextname >> $HOME/.slct_history.txt "
 alias shis="tac $HOME/.slct_history.txt"
+# login to docker with env vars:
+alias dockerlog='docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"'
+# show homedir disk space usage
+alias showhome="df -h /home && cd /home && sudo du -sh * | awk '\$1 ~ /[0-9]+G/ {print}'"
+# show docker image disk space situation
+alias dockerdisk="docker info | grep 'Root Dir' | awk '{print \$NF}' | xargs df -h"
 ##
 #echo
 #echo "*****REMEMBER TO LOAD A CONTEXT*****"

@@ -8,8 +8,6 @@ variables=(
     # "PATH"
     "hostname"
     "sshport"
-    "gitname"
-    "gitemail"
 )
 for var in "${variables[@]}"; do
     if [ -n "${!var}" ]; then

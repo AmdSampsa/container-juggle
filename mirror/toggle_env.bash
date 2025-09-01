@@ -12,7 +12,12 @@ if [ "$1" != "-on" ] && [ "$1" != "-off" ]; then
 fi
 
 line="source \/root\/shared\/bin\/contenv.bash"
-
+if [ "$1" = "-on" ]; then
+    docker exec $container_name sed -i "s/^#*${line}/${line}/" /root/.bashrc
+else
+    docker exec $container_name sed -i "s/^#*${line}/#${line}/" /root/.bashrc
+fi
+line="source \/root\/shared\/secret\/env.bash"
 if [ "$1" = "-on" ]; then
     docker exec $container_name sed -i "s/^#*${line}/${line}/" /root/.bashrc
 else

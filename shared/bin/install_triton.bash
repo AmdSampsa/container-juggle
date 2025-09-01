@@ -116,5 +116,4 @@ fi
 
 # Install the package
 cd "$di/python"
-pip uninstall -y triton && pip uninstall -y pytorch-triton-rocm && rm -rf ~/.triton
-pip install .
+pip uninstall -y triton && pip uninstall -y pytorch-triton-rocm && rm -rf ~/.triton && pip install .

@@ -1,18 +1,33 @@
 #!/bin/bash
+
+do_rsync() {
+    rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" -uvr --delete --max-size=1M "$@"
+}
+
+include_txt=(
+    --include="*/" 
+    --include="*.txt" 
+    --include="*.bash" 
+    --include="*.sh" 
+    --include="*.csv" 
+    --include="*.json" 
+    --include="*.md" 
+    --exclude="*"
+)
+
 echo
 echo PUSHREMOVE
 echo
 echo PORT:$sshport USERNAME:$username HOSTNAME:$hostname
 echo
 ## use at CLIENT
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete --exclude "**/.git" -uvr $HOME/mirror/ $username@$hostname:mirror/ & \
-# rsync --delete -uv $HOME/shared/* $username@$hostname:shared/ & \
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete -uvr --exclude "**/.*" --exclude "**/.git" --include="*.py" --include="*.ipynb" --include="*/" --exclude="*" $HOME/shared/notebook/ $username@$hostname:shared/notebook/ & \
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete -uvr --exclude "**/.*" --exclude "**/.git"--include="*.py" --include="*.ipynb" --include="*/" --exclude="*" $HOME/shared/script/ $username@$hostname:shared/script/ & \
+do_rsync --exclude "**/.*" --exclude "**/.git" $HOME/mirror/* $username@$hostname:mirror/ & \
+do_rsync --exclude "**/.*" --exclude "**/.git" $HOME/shared/* $username@$hostname:shared/ & \
+do_rsync -uvr --exclude "**/.*" --exclude "**/.git" --include="*.py" --include="*.ipynb" --include="*/" --exclude="*" $HOME/shared/notebook/ $username@$hostname:shared/notebook/ & \
+do_rsync -uvr --exclude "**/.*" --exclude "**/.git" --include="*.py" --include="*.ipynb" --include="*/" --exclude="*" $HOME/shared/script/ $username@$hostname:shared/script/ & \
 # NOTE: not syncing "SAVED"
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete -uvr --exclude "**/.*" --exclude "SAVED" --include="*.py" --include "*.txt" --include "*.csv" --include "*.json" --include "*.md" --include "*.bash" --include "*.sh" --include="*/" --exclude="*" $HOME/shared/tests/ $username@$hostname:shared/tests/ & \
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete -uvr --exclude "**/.*" --exclude "**/.git" $HOME/shared/bin/ $username@$hostname:shared/bin/ & \
-# rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete -uvr --exclude "**/.*" --exclude "**/.git" $HOME/shared/env/ $username@$hostname:shared/env/ & \
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no" -uvr $HOME/shared/secret/ $username@$hostname:shared/secret/ & \
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete -uvr --exclude "**/.*" --exclude "**/.git" $HOME/shared/pythonenv/* $username@$hostname:shared/pythonenv/ &
-rsync -e "ssh -p $sshport -o StrictHostKeyChecking=no -o BatchMode=yes" --delete -uvr --include="*.json" --exclude="*"  $HOME/shared/ $username@$hostname:shared/
+do_rsync -uvr --exclude "**/.*" --exclude "SAVED" --include="*.py"  "${include_txt[@]}" $HOME/shared/tests/ $username@$hostname:shared/tests/ & \
+do_rsync -uvr --exclude "**/.*" --exclude "**/.git" $HOME/shared/bin/ $username@$hostname:shared/bin/ & \
+do_rsync $HOME/shared/secret/ $username@$hostname:shared/secret/ & \
+do_rsync -uvr --include="*.json" --exclude="*"  $HOME/shared/ $username@$hostname:shared/ & \
+do_rsync -uvr --exclude "**/.*" --exclude "**/.git" $HOME/shared/pythonenv/* $username@$hostname:shared/pythonenv/ &

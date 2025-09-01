@@ -6,8 +6,15 @@ echo "writing to file "$OUTPUT_FILE
 
 echo $HOSTNAME > $OUTPUT_FILE
 date >> $OUTPUT_FILE
-df -h | grep "data" >> $OUTPUT_FILE
-docker info | grep "Root Dir" >> $OUTPUT_FILE
+
+echo "DISK USAGE" >> $OUTPUT_FILE
+echo "DOCKER:" >> $OUTPUT_FILE
+docker info | grep "Root Dir" | awk '{print $NF}' | xargs df -h >> $OUTPUT_FILE
+echo "HOME DIRS:" >> $OUTPUT_FILE
+df -h /home >> $OUTPUT_FILE
+echo "HOME DIR ANALYSIS:" >> $OUTPUT_FILE
+cd /home && sudo du -sh * | awk '$1 ~ /[0-9]+G/ {print}' >> $OUTPUT_FILE
+echo " " >> $OUTPUT_FILE
 echo "remember: consider 'docker image prune' or 'docker image prune -a'" >> $OUTPUT_FILE
 echo "" >> $OUTPUT_FILE
 echo "IMAGES" >> $OUTPUT_FILE

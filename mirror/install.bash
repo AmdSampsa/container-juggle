@@ -118,6 +118,18 @@ docker cp ~/shared/launch.json $container_name:/root/.vscode/launch.json
 # docker exec $userflag $container_name /bin/sh -c "echo 'source /root/shared/bin/buildenv.bash' >> /root/.bashrc"
 ## -> set some env variables for the build environment
 
+## stupid debugpy only accepts /bin/python as the python interpreter so let's fix that:
+# One-liner to replace both symlinks:
+echo "substituting python symlinks"
+echo
+docker exec $userflag $container_name /bin/sh -c '
+sudo rm -f /bin/python /bin/python3 && 
+sudo ln -sf $(which python) /bin/python && 
+sudo ln -sf $(which python) /bin/python3 &&
+echo "Python symlinks updated:" &&
+ls -la /bin/python* &&
+/bin/python --version
+'
 # Function to detect GPU vendor
 detect_gpu_vendor() {
     # Check for AMD GPUs using rocminfo

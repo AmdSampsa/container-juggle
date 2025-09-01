@@ -12,8 +12,13 @@ echo
 #
 # git clone --depth 1 git@github.com:pytorch/pytorch.git $HOME/pytorch-main
 # git clone --shallow-since="4 weeks ago" git@github.com:pytorch/pytorch.git $HOME/pytorch-main
-git clone --shallow-since="2 years ago" git@github.com:ROCm/pytorch.git $HOME/pytorch-rocm
-# NOTE: you can always git fetch --unshallow
+# git clone --shallow-since="2 years ago" git@github.com:ROCm/pytorch.git $HOME/pytorch-rocm
+## usually we go to some custom branch so shallow clones are a problem..
+git clone git@github.com:ROCm/pytorch.git $HOME/pytorch-rocm
+#cd $HOME/pytorch-rocm
+#git fetch --all --tags
+# NOTE: if shallow clones gives problems you can always:
+# git fetch --unshallow && git fetch --all
 echo
 #cd pytorch
 #echo "Status:"

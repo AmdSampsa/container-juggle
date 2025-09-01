@@ -38,6 +38,8 @@ export TORCHINDUCTOR_COMPILE_FLAGS="-Wl,-z,noexecstack"
 ## better prompt
 # export PS1='[$contextname->Container:\h]/\W> '
 export PS1='[$contextname->Container]/\W> '
+##
+alias rocm-ver="readlink -f /opt/rocm | sed 's/.*rocm-//'"
 ## short-hand commands for inductor runs:
 alias indbg='rm -rf /tmp/torchinductor_root && rm -rf torch_compile_debug && TORCH_COMPILE_DEBUG=1 python'
 alias tridbg='rm -rf /tmp/torchinductor_root && rm -rf torch_compile_debug && rm -rf ~/.triton/cache && TORCH_COMPILE_DEBUG=1 python'
@@ -56,8 +58,6 @@ alias subinit='git submodule deinit -f third_party/kineto && git submodule deini
 #
 ## alias for running lintrunner inside the virtualenv
 alias lintrun='./venv/bin/lintrunner'
-# login to docker with env vars:
-alias dockerlog='docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"'
 ##
 export BUILD_TEST=0
 export USE_CAFFE2=0
