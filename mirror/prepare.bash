@@ -42,6 +42,9 @@ ssh -p "$sshport" $username@"$hostname" 'mkdir -p mirror && mkdir -p shared/env 
 #
 echo "Remote-copying git config files"
 scp -P "$sshport" "$HOME"/shared/secret/.*gitconfig* "$username@$hostname":
+echo "copy devcontainers.json" # nice port forwardings for OAuth2 server auth
+ssh -p "$sshport" "$username@$hostname" "mkdir -p .devcontainer"
+scp -P "$sshport" "$HOME"/shared/devcontainer.json "$username@$hostname":.devcontainer/devcontainer.json
 #
 echo "configuring tmux and emacs"
 #git config --global user.name '${gitname}' &&
@@ -74,7 +77,7 @@ if command -v apt-get >/dev/null 2>&1; then
     sudo apt-get update && sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping zip
 elif command -v yum >/dev/null 2>&1; then
     echo "Detected RedHat/CentOS - using yum"
-    sudo yum install -y inotify-tools emacs dialog tmux silversearcher-ag iputils zip
+    sudo yum install -y inotify-tools emacs dialog tmux the_silver_searcher iputils zip
 elif command -v dnf >/dev/null 2>&1; then
     echo "Detected Fedora - using dnf"
     sudo dnf install -y inotify-tools emacs dialog tmux silversearcher-ag iputils zip
@@ -97,37 +100,38 @@ cp custom_ssh_keys/id_rsa.pub .ssh/ &&
 chmod 600 ~/.ssh/id_rsa && 
 chmod 644 ~/.ssh/id_rsa.pub
 '
-echo "Checking GPU type and installing DLM..."
-ssh -p "$sshport" $username@"$hostname" '
-    # Function to detect GPU vendor
-    detect_gpu_vendor() {
-        if command -v rocminfo &> /dev/null && rocminfo &> /dev/null; then
-            echo "amd"
-        elif command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
-            echo "nvidia"
-        else
-            echo "none"
-        fi
-    }
 
-    # Get GPU vendor
-    GPU_VENDOR=$(detect_gpu_vendor)
-    echo "Detected GPU vendor: $GPU_VENDOR"
-
-    if [ "$GPU_VENDOR" = "amd" ]; then
-        echo "AMD GPU detected, proceeding with ROCm DLM installation..."
-        GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone --depth 1 git@github.com:ROCm/DeepLearningModels.git &&
-        cd DeepLearningModels &&
-        python3 -m venv venv &&
-        venv/bin/pip install -r requirements.txt
-        echo
-        echo IF YOU RUN DLM DO IT IN THE VIRTUALENV
-        echo
-    else
-        echo "No AMD GPU detected, skipping DLM installation"
-        exit 1
-    fi
-'
+#echo "Checking GPU type and installing DLM..."
+#ssh -p "$sshport" $username@"$hostname" '
+#    # Function to detect GPU vendor
+#    detect_gpu_vendor() {
+#        if command -v rocminfo &> /dev/null && rocminfo &> /dev/null; then
+#            echo "amd"
+#        elif command -v nvidia-smi &> /dev/null && nvidia-smi &> /dev/null; then
+#            echo "nvidia"
+#        else
+#            echo "none"
+#        fi
+#    }
+#
+#    # Get GPU vendor
+#    GPU_VENDOR=$(detect_gpu_vendor)
+#    echo "Detected GPU vendor: $GPU_VENDOR"
+#
+#    if [ "$GPU_VENDOR" = "amd" ]; then
+#        echo "AMD GPU detected, proceeding with ROCm DLM installation..."
+#        GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no" git clone --depth 1 git@github.com:ROCm/DeepLearningModels.git &&
+#        cd DeepLearningModels &&
+#        python3 -m venv venv &&
+#        venv/bin/pip install -r requirements.txt
+#        echo
+#        echo IF YOU RUN DLM DO IT IN THE VIRTUALENV
+#        echo
+#    else
+#        echo "No AMD GPU detected, skipping DLM installation"
+#        exit 1
+#    fi
+#'
 
 # Check the SSH command's exit status
 if [ $? -eq 0 ]; then

@@ -92,7 +92,10 @@ fi
 
 # Run lintrunner on the files
 echo "Running lintrunner..."
-echo "${FILE_ARRAY[@]}" | xargs ./venv/bin/lintrunner -a 
+# echo "${FILE_ARRAY[@]}" | xargs ./venv/bin/lintrunner -a 
+echo "${FILE_ARRAY[@]}" | xargs ./venv/bin/lintrunner --config .lintrunner.toml --force-color --skip CLANGTIDY,CLANGFORMAT,MYPY,MYPYSTRICT &>lintresult.txt
 echo
 echo "Processed files: ${FILE_ARRAY[@]}"
-
+echo "Results in lintresult.txt:"
+tail -n 5 lintresult.txt
+echo

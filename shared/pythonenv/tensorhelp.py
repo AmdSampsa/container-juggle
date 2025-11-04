@@ -11,14 +11,14 @@ def check_nan(tensor):
         print("\nnans found:", nn, "/", tensor.numel(), "=", nn/tensor.numel())
         for i in range(0, min(2, len(indx))):
             ind = indx[i]
-            print(ind, "-->", tensor[*ind])
+            print(ind, "-->", tensor[tuple(ind)])
             if i>3: # show first 3 values
                 break
         if len(indx) > 10:
             print("...")
             for i in range(len(indx)-2, len(indx)):
                 ind = indx[i]
-                print(ind, "-->", tensor[*ind])
+                print(ind, "-->", tensor[tuple(ind)])
 
 def quick_nan_context(tensor, context=2):
     """Quick function to show NaN context"""

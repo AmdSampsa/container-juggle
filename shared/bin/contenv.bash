@@ -44,7 +44,12 @@ alias rocm-ver="readlink -f /opt/rocm | sed 's/.*rocm-//'"
 alias indbg='rm -rf /tmp/torchinductor_root && rm -rf torch_compile_debug && TORCH_COMPILE_DEBUG=1 python'
 alias tridbg='rm -rf /tmp/torchinductor_root && rm -rf torch_compile_debug && rm -rf ~/.triton/cache && TORCH_COMPILE_DEBUG=1 python'
 alias indrun='rm -rf /tmp/torchinductor_root && python'
-## 
+alias tunerun='TORCHINDUCTOR_MAX_AUTOTUNE=1 TORCHINDUCTOR_DUMP_LAUNCH_PARAMS=1 python'
+#
+alias killme="killall -9 -u $USER"
+## rocm pytorch version has tons of files modded, so lets use this shorthand to filter them out:
+alias gitstat='git status -uno | grep -i "\.py"'
+##
 alias rebuild='saved=$PWD && cd /root/pytorch/build && ninja -v -j16 && cd /root/pytorch && python setup.py develop && cd $SAVED'
 ## to actually see wtf went wrong:
 alias debuild='saved=$PWD && cd /root/pytorch/build && MAX_JOBS=1 ninja -v -j1 && cd $SAVED'
@@ -72,6 +77,8 @@ alias devenv='export PYTHONPATH=$TORCHDIR:$PYTHONPATH'
 alias install-torch='pip uninstall -y torch && python setup.py install'
 alias install-triton="cd $HOME/triton/python && pip uninstall -y triton && pip uninstall -y pytorch-triton-rocm && rm -rf ~/.triton && pip install ."
 #
+alias cdp="cd $PRINCIPAL_DIR"
+alias cdn="cd /root/shared/notebook"
 # Function to detect GPU and set architecture
 detect_gpu_and_set_arch() {
     # First check for NVIDIA GPUs using nvidia-smi
@@ -118,3 +125,8 @@ pytorch_issues() {
 }
 
 detect_gpu_and_set_arch
+
+echo "Checking pytorch ->"
+[ -L /root/pytorch ] && echo "Symlink to: $(readlink -f /root/pytorch)" && cd "$(readlink -f /root/pytorch)" && echo "Branch: $(git branch --show-current)" || echo "Not a symlink"
+
+cd /root

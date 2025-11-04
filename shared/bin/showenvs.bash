@@ -60,9 +60,11 @@ echo
 if [ -d "$HOME/pytorch" ]; then
     echo "Custom-compiled python found:"
     ls -ld $HOME/pytorch
-    echo
-    echo "GIT REVISION"
     cd $HOME/pytorch
+    echo
+    echo "GIT BRANCH"
+    git branch --show-current
+    echo "GIT REVISION"
     git rev-parse HEAD
     echo
     # Check if version file exists

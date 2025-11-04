@@ -14,3 +14,4 @@ export hostnick= ## host nickname .. for vscode etc.
 export sshport=22 ## port for ssh connections
 ## set terminal title
 echo -e "\033]0;"$contextname"\007"
+export PRINCIPAL_DIR="/path/to/your/project"

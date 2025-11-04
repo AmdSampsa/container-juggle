@@ -50,6 +50,10 @@ Choose a container and now you are in a VSCode that runs inside the container.  
 ### Interactive debugging in CONTAINER 
 
 VSCode debugging works on the basis of a `launch.json` file.  We provide a nice one for rocm and python debugging, see it in [shared/launch.json](shared/launch.json).
+You can even do triton kernel debugging!
 
 If you follow the tutorial in the main readme file, that file is already in the correct place in your container.  In VSCode menus, you can choose to edit it and launch
 debugging session using it.
+
+If your python debugger doesn't work in the container (does not find the correct python executable etc.), please try the `setup_debugpy.bash` command to fix the
+paths.

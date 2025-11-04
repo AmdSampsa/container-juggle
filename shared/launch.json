@@ -59,6 +59,16 @@
                 "TORCH_COMPILE_DEBUG": "1"
               },
               "justMyCode": false
+          },
+          { // just some random python file
+              "name": "Triton debug",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "${file}",
+              "env": {
+                "TRITON_INTERPRET": "1"
+              }, // access numpy array: TRITONTENSOR.handle.data.__class__
+              "justMyCode": false
           }
     ]
 }
