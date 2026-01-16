@@ -5,6 +5,15 @@
 # Check if there's an unattached tmux session starting with contextname
 #echo TEST $contextname TEST
 #tmux ls 2>/dev/null
+
+# If a session number is provided as parameter, attach directly to it
+if [ -n "$1" ]; then
+    session_name="${contextname}-$1"
+    echo "Attaching to session: $session_name"
+    tmux attach -t "$session_name"
+    exit $?
+fi
+
 if tmux ls 2>/dev/null | grep "^${contextname}-" | grep -v "(attached)" | grep -q .; then
     # Get the first matching unattached session name
     session_name=$(tmux ls 2>/dev/null | grep "^${contextname}-" | grep -v "(attached)" | head -n1 | cut -d: -f1)

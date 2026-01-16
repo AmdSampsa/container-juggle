@@ -1,5 +1,6 @@
 #!/bin/bash
 export PATH=$PATH:$HOME/mirror:$HOME/shared/bin:$HOME/DeepLearningModels/tools
+export PATH=$PATH:$HOME/.local/bin
 ## better prompt
 export PS1='[\h:$contextname]/\W> '
 ## command for choosing the context with a gui
@@ -18,6 +19,8 @@ alias dockerlog='docker login -u "$DOCKER_USER" -p "$DOCKER_PASS"'
 alias showhome="df -h /home && cd /home && sudo du -sh * | awk '\$1 ~ /[0-9]+G/ {print}'"
 # show docker image disk space situation
 alias dockerdisk="docker info | grep 'Root Dir' | awk '{print \$NF}' | xargs df -h"
+## disable the totally maddening bell sound
+set bell-style none
 ##
 #echo
 #echo "*****REMEMBER TO LOAD A CONTEXT*****"
@@ -50,4 +53,5 @@ extract_to_subdir() {
 
 # Create the alias that calls the function
 alias unzipsub='extract_to_subdir'
-
+alias coreclean='find $HOME -name "gpucore.*" -type f -delete'
+df . | awk 'NR==2 {if(int($5) > 95) print "WARNING: Disk usage is " $5 " - critically low space!"}'

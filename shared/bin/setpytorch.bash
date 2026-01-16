@@ -28,34 +28,41 @@ ln -s $HOME/pytorch-$1 $HOME/pytorch
 #    echo
 #fi
 
-if [ -f "$HOME/pytorch/.ci/docker/triton_version.txt" ]; then
-    # Get expected version from file
-    expected_version=$(cat "$HOME/pytorch/.ci/docker/triton_version.txt")
+TRITON_PIN_FILE="$HOME/pytorch/.ci/docker/ci_commit_pins/triton.txt"
+
+if [ -f "$TRITON_PIN_FILE" ]; then
+    # Get expected commit hash from pin file
+    expected_hash=$(head -n1 "$TRITON_PIN_FILE" | tr -d '[:space:]')
+    expected_hash_short=$(echo "$expected_hash" | head -c 8)
     
-    # Get installed triton version using Python
-    actual_version=$(python3 -c "import triton; print(triton.__version__)")
+    # Get installed triton git hash using Python
+    actual_hash=$(python3 -c "import triton; print(getattr(triton, '__git_hash__', 'unknown'))" 2>/dev/null || echo "unknown")
+    actual_hash_short=$(echo "$actual_hash" | head -c 8)
     
-    if [ "$expected_version" = "$actual_version" ]; then
-        echo "Triton versions match: $actual_version"
+    # Also get version for display
+    actual_version=$(python3 -c "import triton; print(triton.__version__)" 2>/dev/null || echo "not installed")
+    
+    if [ "$expected_hash_short" = "$actual_hash_short" ]; then
+        echo "Triton commit matches: $actual_hash_short (version $actual_version)"
         echo 
-        echo when linting, run first "initlinter.bash" and then use the "lintrun" alias to run lintunner in the virtualenv
+        echo "When linting, run first \"initlinter.bash\" and then use the \"lintrun\" alias to run lintrunner in the virtualenv"
         echo
         exit 0
     else
-        echo "FATAL: Triton version mismatch"
-        echo "Expected: $expected_version"
-        echo "Actual: $actual_version"
-        read -p "Would you like to install the compatible version? (y/n) " answer
+        echo "WARNING: Triton commit mismatch"
+        echo "Expected: $expected_hash_short ($expected_hash)"
+        echo "Actual:   $actual_hash_short (version $actual_version)"
+        echo
+        read -p "Would you like to install the pinned commit? (y/n) " answer
         if [[ $answer == [Yy]* ]]; then
-            expected_generic=$(echo "$expected_version" | sed -E 's/([0-9]+\.[0-9]+)\.[0-9]+/\1.x/') # into 3.2.x etc.
-            install_triton.bash "$expected_generic"
+            install_triton_hash.bash "$expected_hash"
             exit $?
         else
             exit 1
         fi
     fi
 else
-    echo "WARNING: Triton version file not found"
+    echo "WARNING: Triton pin file not found: $TRITON_PIN_FILE"
     exit 1
 fi
 

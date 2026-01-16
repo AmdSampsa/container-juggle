@@ -9,4 +9,4 @@
 #ssh -t -p$sshport $username@$hostname "bash --rcfile <(cat ~/mirror/context/${contextname}.bash ~/.bashrc) -c '~/mirror/tlogin_.bash'"
 #ssh -t -p$sshport $username@$hostname "bash -l -c 'source ~/mirror/context/${contextname}.bash && ~/mirror/tlogin_.bash'"
 ## the most robust:
-ssh -t -p$sshport $username@$hostname 'bash -l -c "source ~/mirror/context/'${contextname}'.bash && ~/mirror/tlogin_.bash"'
+ssh -t -p$sshport $username@$hostname 'bash -l -c "source ~/mirror/context/'${contextname}'.bash && ~/mirror/tlogin_.bash '$1'"'

@@ -17,4 +17,15 @@ include_txt=(
 
 ## use at CLIENT
 do_rsync --exclude "**/.*" $HOME/mirror/* $username@$hostname:mirror/
-do_rsync --exclude "**/.*" $HOME/shared/* $username@$hostname:shared/
+## Shared - only specific directories tests/ -> no recursion to subdirs
+do_rsync --exclude "**/.*" \
+    --include="bin/" \
+    --include="bin/**" \
+    --include="pythonenv/" \
+    --include="pythonenv/*" \
+    --include="tests/" \
+        --include="tests/*" \
+    --include="tests/*/*" \
+    --exclude="tests/*/*/" \
+    --exclude="*" \
+    $HOME/shared/ $username@$hostname:shared/

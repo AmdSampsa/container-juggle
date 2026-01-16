@@ -14,4 +14,4 @@ else
 fi
 # Perform the rsync with the directory (either from argument or saved file)
 rm -rf $HOME/$dir
-rsync -e "ssh -p $sshport" -uvr "$username@$hostname:$dir/" "$HOME/$dir/"
+rsync -e "ssh -p $sshport" --info=progress2 -uvr "$username@$hostname:$dir/" "$HOME/$dir/"

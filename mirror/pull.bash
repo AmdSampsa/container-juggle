@@ -15,9 +15,11 @@ exclude_artefacts=(
     --exclude="hwfail/"
     --exclude="fail/"
     --exclude="rerun/"
+    --exclude="uncategorized/"
     --exclude="success/"
     --include="*.ipynb" 
     --include="*/" 
+    --include="*.png"
 )
 
 include_txt=(
@@ -31,7 +33,7 @@ include_txt=(
 )
 
 ## use at CLIENT
-do_rsync $username@$hostname:mirror/* $HOME/mirror/ & \
+do_rsync --exclude "context/" $username@$hostname:mirror/* $HOME/mirror/ & \
 do_rsync --exclude "**/.*" $username@$hostname:shared/bin/* $HOME/shared/bin/ & \
 do_rsync "${exclude_artefacts[@]}" --exclude="*" $username@$hostname:shared/notebook/ $HOME/shared/notebook/ & \
 do_rsync "${exclude_artefacts[@]}" --exclude="*" $username@$hostname:shared/script/ $HOME/shared/script/ & \

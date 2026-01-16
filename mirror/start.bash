@@ -34,17 +34,24 @@ if [ -n "$container_id" ]; then
     fi
 else
     IMAGE_NAME=$image_id
-    if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
-        echo "Image $IMAGE_NAME already exists locally."
+    #if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+    #    echo "Image $IMAGE_NAME already exists locally."
+    #    # NO NO NO .. we can end up with an ancient image!
+    #else
+    # echo "Image $IMAGE_NAME does not exist locally. Attempting to pull..."
+    echo $IMAGE_NAME >> $HOME/MY_IMAGES.txt
+    if docker pull "$IMAGE_NAME"; then
+        echo "Successfully pulled $IMAGE_NAME."
     else
-        echo "Image $IMAGE_NAME does not exist locally. Attempting to pull..."
-        echo $IMAGE_NAME >> $HOME/MY_IMAGES.txt
-        if docker pull "$IMAGE_NAME"; then
-            echo "Successfully pulled $IMAGE_NAME."
-        else
-            echo "Failed to pull $IMAGE_NAME. Please check the image name and your internet connection."
-            exit 1
-        fi
+        echo
+        echo
+        echo "Failed to pull $IMAGE_NAME. Please check the image name and your internet connection."
+        echo "NOTE: if its about certificates remember to edit your /etc/docker/daemon.json"
+        echo "REMINDER: no https or /v2 into the server name, just the plain URL"
+        echo "Then restart docker daemon with"
+        echo "sudo systemctl restart docker"
+        echo
+        exit 1
     fi
     # 
     if command -v nvidia-smi &> /dev/null || lspci | grep -i nvidia &> /dev/null; then
@@ -81,4 +88,12 @@ else
 
     # Execute the command
     eval "$docker_cmd"
+    if [ $? -eq 0 ]; then
+        echo "Command executed successfully"
+    else
+        echo "Command failed with exit code: $?"
+        echo
+        echo "A TIP: have you tried 'sudo modprobe amdgpu'?"
+        echo
+    fi
 fi

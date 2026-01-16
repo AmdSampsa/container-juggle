@@ -149,6 +149,12 @@ def main():
         default=None,
         help="Just run a command instead of connecting"
     )
+    group.add_argument(
+        "--env",
+        default=None,
+        metavar="HOST",
+        help="Output export statements for hostname, sshport, username. Usage: eval $(go_ssh.py --env HOST)"
+    )
     
     args = parser.parse_args()
     
@@ -157,6 +163,17 @@ def main():
     except Exception as e:
         print(f"Error loading config file: {e}")
         sys.exit(1)
+
+    # Handle --env flag
+    if args.env is not None:
+        if args.env not in config['hosts']:
+            print(f"# Error: Host nickname '{args.env}' not found in config", file=sys.stderr)
+            sys.exit(1)
+        host_config = config['hosts'][args.env]
+        print(f'export hostname="{host_config["host"]}"')
+        print(f'export sshport="{host_config["sshport"]}"')
+        print(f'export username="{config["username"]}"')
+        sys.exit(0)
 
     if args.n is None and args.test:
         test_all_connections(config)

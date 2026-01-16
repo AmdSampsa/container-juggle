@@ -48,17 +48,27 @@ echo
 echo CHECKING TORCHVISION
 python3 -c "import torchvision"
 if [ $? -ne 0 ]; then
-    echo "importing tochvision failed"
+    echo "importing torchvision failed"
     pip freeze | grep -i "torchvision"
-    read -p "Would you like to install torchvision from git? " answer
-    if [[ $answer == [Yy]* ]]; then
-        install_torchvision.bash
-    fi
+    echo
+    echo "************************************************************"
+    echo "*                                                          *"
+    echo "*  To install torchvision, run: install_torchvision.bash  *"
+    echo "*                                                          *"
+    echo "************************************************************"
+    echo
 fi
 echo
 # Check if pytorch directory exists
 if [ -d "$HOME/pytorch" ]; then
-    echo "Custom-compiled python found:"
+    if [ -L "$HOME/pytorch" ]; then
+        echo "Custom-compiled python found (symlink):"
+    else
+        echo "⚠️  WARNING: $HOME/pytorch is a real directory, not a symlink!"
+        echo "    You're not supposed to do this!"
+        echo "    Move it and create a symlink instead for easier version management"
+        echo "Custom-compiled python found (directory):"
+    fi
     ls -ld $HOME/pytorch
     cd $HOME/pytorch
     echo

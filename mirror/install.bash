@@ -109,6 +109,7 @@ docker exec $userflag $container_name /bin/sh -c "
   echo 'export PRINCIPAL_DIR=$PRINCIPAL_DIR' >> /root/.bashrc  
   echo 'source /root/shared/bin/contenv.bash' >> /root/.bashrc
   echo 'source /root/shared/secret/env.bash' >> /root/.bashrc
+  echo 'set bell-style none' >> /root/.inputrc
 "
 # docker exec $userflag $container_name /bin/sh -c "echo \"export CTXENV=/root/shared/env/$contextname\" >> ~/.bashrc" # -> NOPES: we do this now when logging with ssh and in contenv.bash
 ## -> that scripts added /root/shared/bin/ into the exec search path

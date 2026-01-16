@@ -1,6 +1,5 @@
 #!/bin/bash
 ## dont spread these around!
-## TODO: copy this into "env.bash" and put therein you credentials
 ## under what git username are YOUR private repos (used by some of our shorthand scripts):
 export githuser=
 #

@@ -18,6 +18,8 @@ elif [ -d "/tmp/pytorch" ]; then
 else
     echo "ROCM WARNING: neither /var/lib/jenkings/pytorch (internal testing image) nor /tmp/pytorch (nightly image) found"
 fi
+## disable the totally maddening bell sound
+set bell-style none
 ## where torch is actually imported & being executed from:
 echo "probing torch installation.."
 export TORCHEXE=$(python3 -c "import torch; import os; print(os.path.dirname(torch.__file__))")
@@ -50,7 +52,8 @@ alias killme="killall -9 -u $USER"
 ## rocm pytorch version has tons of files modded, so lets use this shorthand to filter them out:
 alias gitstat='git status -uno | grep -i "\.py"'
 ##
-alias rebuild='saved=$PWD && cd /root/pytorch/build && ninja -v -j16 && cd /root/pytorch && python setup.py develop && cd $SAVED'
+# alias rebuild='saved=$PWD && cd /root/pytorch/build && ninja -v -j16 &>paska.dat && cd /root/pytorch && python setup.py develop && cd $SAVED'
+alias rebuild='cd build && MAX_JOBS=1 ninja -v -j16 &>/root/sharedump/paska.dat'
 ## to actually see wtf went wrong:
 alias debuild='saved=$PWD && cd /root/pytorch/build && MAX_JOBS=1 ninja -v -j1 && cd $SAVED'
 ## ..if can't find numpy, do this:

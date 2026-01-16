@@ -33,6 +33,8 @@ case \$- in
 esac' >> ~/.bashrc
   echo 'source mirror/env.bash' >> ~/.bashrc
   echo 'source shared/secret/env.bash' >> ~/.bashrc
+  echo 'PATH=\$PATH:\$HOME/.local/bin' >> ~/.bashrc
+  echo 'set bell-style none' >> ~/.inputrc
 "
 
 echo "making some directories"
@@ -42,9 +44,9 @@ ssh -p "$sshport" $username@"$hostname" 'mkdir -p mirror && mkdir -p shared/env 
 #
 echo "Remote-copying git config files"
 scp -P "$sshport" "$HOME"/shared/secret/.*gitconfig* "$username@$hostname":
-echo "copy devcontainers.json" # nice port forwardings for OAuth2 server auth
-ssh -p "$sshport" "$username@$hostname" "mkdir -p .devcontainer"
-scp -P "$sshport" "$HOME"/shared/devcontainer.json "$username@$hostname":.devcontainer/devcontainer.json
+# echo "copy devcontainers.json" # nice port forwardings for OAuth2 server auth
+# ssh -p "$sshport" "$username@$hostname" "mkdir -p .devcontainer"
+# scp -P "$sshport" "$HOME"/shared/devcontainer.json "$username@$hostname":.devcontainer/devcontainer.json
 #
 echo "configuring tmux and emacs"
 #git config --global user.name '${gitname}' &&
@@ -74,13 +76,13 @@ echo "apt-get/yum installing some"
 ssh -p "$sshport" $username@"$hostname" '
 if command -v apt-get >/dev/null 2>&1; then
     echo "Detected Debian/Ubuntu - using apt-get"
-    sudo apt-get update && sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping zip
+    sudo apt-get update && sudo apt-get install -y inotify-tools emacs dialog tmux silversearcher-ag iputils-ping zip pv pigz
 elif command -v yum >/dev/null 2>&1; then
     echo "Detected RedHat/CentOS - using yum"
-    sudo yum install -y inotify-tools emacs dialog tmux the_silver_searcher iputils zip
+    sudo yum install -y inotify-tools emacs dialog tmux the_silver_searcher iputils zip pv pigz
 elif command -v dnf >/dev/null 2>&1; then
     echo "Detected Fedora - using dnf"
-    sudo dnf install -y inotify-tools emacs dialog tmux silversearcher-ag iputils zip
+    sudo dnf install -y inotify-tools emacs dialog tmux silversearcher-ag iputils zip pv pigz
 else
     echo "No supported package manager found!"
     exit 1
@@ -99,7 +101,9 @@ cp custom_ssh_keys/id_rsa .ssh/ &&
 cp custom_ssh_keys/id_rsa.pub .ssh/ && 
 chmod 600 ~/.ssh/id_rsa && 
 chmod 644 ~/.ssh/id_rsa.pub
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 '
+# ..that last one is nice for GPU cluster interconnectivity
 
 #echo "Checking GPU type and installing DLM..."
 #ssh -p "$sshport" $username@"$hostname" '

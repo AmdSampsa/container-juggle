@@ -8,10 +8,30 @@ cd $HOME
 # ver="3.18.0" # oold PTs need this
 # ver="3.27.0" # more recent PTs want this
 ver=$1
-# download
+
+# Clean up any previous downloaded cmake tarballs/directories
+rm -rf cmake-*-linux-x86_64*
+
+# download first, before removing old installation
 wget https://github.com/Kitware/CMake/releases/download/v$ver/cmake-$ver-linux-x86_64.tar.gz
-# Extract and use:
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to download cmake $ver"
+    exit 1
+fi
+
+# Extract
 tar -xzf cmake-$ver-linux-x86_64.tar.gz
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to extract cmake tarball"
+    exit 1
+fi
+
+# ===== REMOVE OLD CMAKE INSTALLATION =====
+echo "Removing old cmake installation..."
+# Remove cmake binaries from /usr/local/bin
+sudo rm -f /usr/local/bin/cmake /usr/local/bin/ccmake /usr/local/bin/ctest /usr/local/bin/cpack /usr/local/bin/cmake-gui
+# Remove cmake share files (versioned directories)
+sudo rm -rf /usr/local/share/cmake*
 sudo cp cmake-$ver-linux-x86_64/bin/* /usr/local/bin/
 sudo cp -r cmake-$ver-linux-x86_64/share/* /usr/local/share/
 # Update PATH and test:

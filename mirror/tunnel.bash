@@ -23,6 +23,7 @@ ssh -p $sshport \
   $AUTH_PORTS \
   -L 8888:localhost:9999 \
   $username@$hostname -p$sshport \
-  "docker exec $container_name sh -c '. /root/shared/bin/sh_env.sh && env && jupyter lab --ip 0.0.0.0 --port 9999 --no-browser --allow-root --NotebookApp.token=\"\" --NotebookApp.password=\"\" --notebook-dir=/root/shared/notebook'"
+  "docker exec $container_name \
+  sh -c '. /root/shared/bin/sh_env.sh && env && jupyter lab --ip 0.0.0.0 --port 9999 --no-browser --allow-root --NotebookApp.token=\"\" --NotebookApp.password=\"\" --notebook-dir=/root/shared/notebook'"
 
 ssh -p $sshport $username@$hostname -p$sshport "docker exec $container_name pkill -f jupyter"
