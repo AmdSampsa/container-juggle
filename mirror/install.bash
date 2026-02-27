@@ -45,8 +45,8 @@ if [ "$TOOLS" = true ]; then
   echo "Installing emacs, less, etc. into container"
   docker exec $userflag $container_name /bin/sh -c '
       (apt-get update && 
-      apt-get install -y emacs less colorized-logs silversearcher-ag tree dialog psmisc ccache ssh iputils-ping psmisc) || 
-      (yum install -y emacs less the_silver_searcher tree dialog psmisc ccache openssh iputils psmisc)
+      apt-get install -y emacs less colorized-logs silversearcher-ag tree dialog psmisc ccache ssh iputils-ping psmisc jq) || 
+      (yum install -y emacs less the_silver_searcher tree dialog psmisc ccache openssh iputils psmisc jq)
   '
   docker exec $userflag $container_name /bin/sh -c '
     (apt-get install -y sqlite3 libsqlite3-dev libfmt-dev) || 

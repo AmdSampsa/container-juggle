@@ -50,7 +50,20 @@ alias tunerun='TORCHINDUCTOR_MAX_AUTOTUNE=1 TORCHINDUCTOR_DUMP_LAUNCH_PARAMS=1 p
 #
 alias killme="killall -9 -u $USER"
 ## rocm pytorch version has tons of files modded, so lets use this shorthand to filter them out:
-alias gitstat='git status -uno | grep -i "\.py"'
+gitstat() {
+    # Show Python file changes
+    git status -uno | grep -i "\.py"
+    # Check for unpushed commits
+    local branch=$(git branch --show-current 2>/dev/null)
+    if [ -n "$branch" ]; then
+        local remote=$(git config branch."$branch".remote 2>/dev/null || echo "origin")
+        local ahead=$(git rev-list --count @{u}..HEAD 2>/dev/null)
+        if [ -n "$ahead" ] && [ "$ahead" -gt 0 ]; then
+            echo ""
+            echo "⚠️  WARNING: Branch '$branch' is $ahead commit(s) ahead of '$remote/$branch' (not pushed)"
+        fi
+    fi
+}
 ##
 # alias rebuild='saved=$PWD && cd /root/pytorch/build && ninja -v -j16 &>paska.dat && cd /root/pytorch && python setup.py develop && cd $SAVED'
 alias rebuild='cd build && MAX_JOBS=1 ninja -v -j16 &>/root/sharedump/paska.dat'

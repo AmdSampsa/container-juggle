@@ -24,6 +24,21 @@ prompt_with_default() {
     echo "$result"
 }
 
+# Function to create symlink to installed triton source directory
+create_triton_symlink() {
+    local source_dir="$1"
+    local link_name="$HOME/triton_installed"
+    
+    # Remove existing symlink if it exists
+    if [ -L "$link_name" ]; then
+        rm "$link_name"
+    fi
+    
+    # Create new symlink
+    ln -s "$source_dir" "$link_name"
+    echo "  Created symlink: $link_name -> $source_dir"
+}
+
 # Ask for installation method
 echo "====================================="
 echo "Triton Installation Script"
@@ -43,8 +58,13 @@ case "$INSTALL_METHOD" in
         echo "Select git repository source:"
         echo "  1) triton-lang/triton"
         echo "  2) ROCm/triton"
-        echo
-        read -p "Enter choice [1-2]: " REPO_CHOICE
+        USE_TRITON_ME=""
+        if [ -d "/root/triton-me" ]; then
+            echo "  3) Use local /root/triton-me (your fork)"
+            read -p "Enter choice [1-3]: " REPO_CHOICE
+        else
+            read -p "Enter choice [1-2]: " REPO_CHOICE
+        fi
         
         case "$REPO_CHOICE" in
             1)
@@ -52,6 +72,15 @@ case "$INSTALL_METHOD" in
                 ;;
             2)
                 REPO_SOURCE="ROCm"
+                ;;
+            3)
+                if [ -d "/root/triton-me" ]; then
+                    USE_TRITON_ME="yes"
+                    TRITON_DIR="/root/triton-me"
+                else
+                    echo "Error: /root/triton-me not found"
+                    exit 1
+                fi
                 ;;
             *)
                 echo "Error: Invalid choice"
@@ -70,46 +99,92 @@ case "$INSTALL_METHOD" in
             BRANCH=$(prompt_with_default "Enter branch name" "main")
         fi
         
-        # Set the destination directory
-        if [ "$REPO_SOURCE" = "triton-lang" ]; then
-            TRITON_DIR="$HOME/triton"
-        else
-            TRITON_DIR="$HOME/triton-$REPO_SOURCE"
+        # Set the destination directory (if not using triton-me)
+        if [ -z "$USE_TRITON_ME" ]; then
+            if [ "$REPO_SOURCE" = "triton-lang" ]; then
+                TRITON_DIR="$HOME/triton"
+            else
+                TRITON_DIR="$HOME/triton-$REPO_SOURCE"
+            fi
         fi
         
         echo
-        echo "Repository: https://github.com/$REPO_SOURCE/triton"
+        if [ -n "$USE_TRITON_ME" ]; then
+            echo "Using local repository: /root/triton-me"
+        else
+            echo "Repository: https://github.com/$REPO_SOURCE/triton"
+        fi
         echo "Branch: $BRANCH"
         echo "Directory: $TRITON_DIR"
         echo
         
-        # Clone repository if it doesn't exist
-        if [ ! -d "$TRITON_DIR" ]; then
+        # Clone repository if it doesn't exist (skip if using triton-me)
+        if [ -z "$USE_TRITON_ME" ] && [ ! -d "$TRITON_DIR" ]; then
             echo "Cloning repository..."
             git clone --shallow-since="3 months ago" "https://github.com/$REPO_SOURCE/triton" "$TRITON_DIR"
         fi
         
         cd "$TRITON_DIR"
         
-        # Configure git to fetch all branches
-        git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+        # Configure git to fetch all branches (only if not using triton-me or if remotes need setup)
+        if [ -z "$USE_TRITON_ME" ]; then
+            git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+        else
+            # For triton-me, ensure upstream is configured if it exists
+            if git remote | grep -q "^upstream$"; then
+                git config remote.upstream.fetch "+refs/heads/*:refs/remotes/upstream/*" 2>/dev/null || true
+            fi
+        fi
         
         echo "Fetching latest changes..."
-        git fetch --all
+        if [ -n "$USE_TRITON_ME" ]; then
+            # Fetch from both origin and upstream if they exist
+            if git remote | grep -q "^origin$"; then
+                echo "  Fetching from origin..."
+                git fetch origin || echo "  (origin fetch failed or skipped)"
+            fi
+            if git remote | grep -q "^upstream$"; then
+                echo "  Fetching from upstream..."
+                git fetch upstream || echo "  (upstream fetch failed or skipped)"
+            fi
+        else
+            git fetch --all
+        fi
+        echo "Fetch completed."
         
         # Checkout the desired branch
         echo "Checking out $BRANCH..."
-        if [ "$BRANCH" = "main" ]; then
-            git checkout main
-            git pull
-        else
-            git checkout "$BRANCH"
-            if [ $? -ne 0 ]; then
-                echo "Error: Failed to checkout $BRANCH"
-                echo "NOTE: Release tags are typically in format: release/3.2.x"
+        if [ -n "$USE_TRITON_ME" ]; then
+            # For triton-me, try origin first, then upstream
+            if git show-ref --verify --quiet refs/remotes/origin/"$BRANCH"; then
+                echo "Found branch on origin, checking out origin/$BRANCH..."
+                git checkout -b "$BRANCH" origin/"$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+            elif git show-ref --verify --quiet refs/remotes/upstream/"$BRANCH"; then
+                echo "Found branch on upstream, checking out upstream/$BRANCH..."
+                git checkout -b "$BRANCH" upstream/"$BRANCH" 2>/dev/null || git checkout "$BRANCH"
+            elif git show-ref --verify --quiet refs/heads/"$BRANCH"; then
+                echo "Found local branch, checking out $BRANCH..."
+                git checkout "$BRANCH"
+            else
+                echo "Error: Branch $BRANCH not found in origin or upstream"
+                echo "Available branches:"
+                git branch -r | head -10
                 exit 1
             fi
-            git pull || true
+        else
+            # Standard checkout logic for regular repos
+            if [ "$BRANCH" = "main" ]; then
+                git checkout main
+                git pull
+            else
+                git checkout "$BRANCH"
+                if [ $? -ne 0 ]; then
+                    echo "Error: Failed to checkout $BRANCH"
+                    echo "NOTE: Release tags are typically in format: release/3.2.x"
+                    exit 1
+                fi
+                git pull || true
+            fi
         fi
         
         # Uninstall existing triton installations
@@ -150,6 +225,9 @@ case "$INSTALL_METHOD" in
             
             echo
             echo "✓ Triton installed successfully!"
+            
+            # Create symlink to source directory
+            create_triton_symlink "$TRITON_DIR"
         else
             # Method 2: make dev-install-llvm
             echo
@@ -226,6 +304,9 @@ case "$INSTALL_METHOD" in
             
             echo
             echo "✓ Triton installed successfully!"
+            
+            # Create symlink to source directory
+            create_triton_symlink "$TRITON_DIR"
         fi
         ;;
         
@@ -305,6 +386,13 @@ case "$INSTALL_METHOD" in
         
         echo
         echo "✓ Triton installed successfully!"
+        
+        # For PyPI installation, create a marker directory with version info
+        PYPI_MARKER_DIR="$HOME/triton_pypi_$TRITON_VERSION_PATTERN"
+        mkdir -p "$PYPI_MARKER_DIR"
+        echo "Installed from PyPI: triton==$TRITON_VERSION_PATTERN" > "$PYPI_MARKER_DIR/README.txt"
+        echo "Installation date: $(date)" >> "$PYPI_MARKER_DIR/README.txt"
+        create_triton_symlink "$PYPI_MARKER_DIR"
         ;;
         
     *)

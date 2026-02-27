@@ -11,7 +11,8 @@ echo
 # cd $HOME
 #
 # git clone --depth 1 git@github.com:pytorch/pytorch.git $HOME/pytorch-main
-git clone --shallow-since="2 years ago" git@github.com:pytorch/pytorch.git $HOME/pytorch-main
+# git clone --shallow-since="2 years ago" git@github.com:pytorch/pytorch.git $HOME/pytorch-main
+git clone git@github.com:pytorch/pytorch.git $HOME/pytorch-main
 # NOTE: you can always git fetch --unshallow
 echo
 #cd pytorch
