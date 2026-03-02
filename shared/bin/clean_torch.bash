@@ -215,10 +215,9 @@ if [[ $choice == "y" || $choice == "Y" ]]; then
     git reset --hard --recurse-submodules
     ## -> discards everything not committed
     git clean -fd
-    # git clean -fd --recurse-submodules
     ## -> removes all .so and .pyc build artifacts
-    # git submodule foreach --recursive 
-    # .. that one needs a subcommand
+    # Clean untracked files in all submodules
+    git submodule foreach --recursive git clean -fd
     ## stubborn kineto..
     git submodule deinit -f third_party/kineto
     # Simply remove the directory if you don't need it
