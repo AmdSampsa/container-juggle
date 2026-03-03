@@ -218,8 +218,57 @@ if [[ $choice == "y" || $choice == "Y" ]]; then
     ## -> removes all .so and .pyc build artifacts
     # Clean untracked files in all submodules
     git submodule foreach --recursive git clean -fd
-    ## stubborn kineto..
-    git submodule deinit -f third_party/kineto
+    
+    # Aggressively clean untracked directories that look like submodules but aren't registered
+    echo "Cleaning untracked submodule-like directories..."
+    # Get list of actual submodule paths from .gitmodules
+    if [ -f .gitmodules ]; then
+        actual_submodules=$(git config --file .gitmodules --get-regexp path | awk '{print $2}')
+    else
+        actual_submodules=""
+    fi
+    
+    # Find and remove untracked directories in third_party/ and android/
+    # that aren't actual registered submodules
+    for search_dir in third_party android; do
+        if [ ! -d "$search_dir" ]; then
+            continue
+        fi
+        for dir in "$search_dir"/*; do
+            # Skip if glob didn't match (path would contain literal *)
+            if [[ "$dir" == *"*"* ]]; then
+                continue
+            fi
+            if [ ! -d "$dir" ]; then
+                continue
+            fi
+            # Check if it's an actual submodule (has .git file pointing to modules)
+            if [ -f "$dir/.git" ] || [ -L "$dir/.git" ]; then
+                # It looks like a submodule - check if it's registered
+                dir_path="${dir#./}"
+                is_registered=false
+                for submod in $actual_submodules; do
+                    if [ "$submod" = "$dir_path" ]; then
+                        is_registered=true
+                        break
+                    fi
+                done
+                if [ "$is_registered" = false ]; then
+                    echo "  Removing unregistered submodule-like directory: $dir"
+                    rm -rf "$dir"
+                fi
+            elif ! git ls-files --error-unmatch "$dir" &>/dev/null 2>&1; then
+                # Not tracked by git and not a submodule - remove it
+                echo "  Removing untracked directory: $dir"
+                rm -rf "$dir"
+            fi
+        done
+    done
+    
+    ## stubborn kineto.. (only deinit if it exists)
+    if git submodule status third_party/kineto &>/dev/null; then
+        git submodule deinit -f third_party/kineto
+    fi
     # Simply remove the directory if you don't need it
     rm -rf third_party/x86-simd-sort/
     rm -rf third_party/kleidiai/

@@ -51,8 +51,8 @@ alias tunerun='TORCHINDUCTOR_MAX_AUTOTUNE=1 TORCHINDUCTOR_DUMP_LAUNCH_PARAMS=1 p
 alias killme="killall -9 -u $USER"
 ## rocm pytorch version has tons of files modded, so lets use this shorthand to filter them out:
 gitstat() {
-    # Show Python file changes
-    git status -uno | grep -i "\.py"
+    # Show Python file changes, .txt files, and files in hidden directories (like .ci, .github, etc.)
+    git status -uno | grep -iE "\.py|\.txt|/\."
     # Check for unpushed commits
     local branch=$(git branch --show-current 2>/dev/null)
     if [ -n "$branch" ]; then
