@@ -71,7 +71,7 @@ else
         tail -f /dev/null"
 
     # Save the command to .docker_run
-    # echo "$docker_cmd" > $HOME/.docker_run
+    echo "$docker_cmd" > $HOME/.docker_run_simple
 
     # Execute the command
     echo STATING CONTAINER WITH

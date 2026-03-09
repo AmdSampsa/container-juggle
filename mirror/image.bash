@@ -3,26 +3,33 @@
 usage() {
     echo "Usage: image.bash --export|--import [options]"
     echo
-    echo "Export mode (container -> image -> compressed tar):"
-    echo "  image.bash --export <container_name> <image_name> [output_file.tar.gz]"
-    echo "  If output_file is omitted, defaults to <image_name>.tar.gz"
-    echo "  Options:"
-    echo "    --compress      Enable compression (default: disabled)"
-    echo "    --cleanup       Enable cleanup step (private keys, git config, empty mount dirs) (default: disabled)"
-    echo "    --export        Create tar file (default: disabled, only commit and optionally push)"
-    echo "    --skip-commit   Skip docker commit, use existing image (removes old tar.gz)"
-    echo "    --push <tag>    Push image to registry with specified tag (e.g., user/repo:v1.0)"
+    echo "Export mode (container -> image, optionally -> tar file):"
+    echo "  image.bash --export <container_name> <image_name> [options] [output_file]"
+    echo "  The first --export is the MODE (required). Without it you get usage/error."
+    echo "  By default: commit only, no tar file. Add flags below to change behavior."
     echo
-    echo "Example workflow:"
-    echo "  1) Commit container with cleanup:"
-    echo "     image.bash --export <container_name> <image_name> --cleanup"
+    echo "  Options (all optional):"
+    echo "    --cleanup       Run cleanup in temp container (SSH keys, git config, mount dirs) then commit"
+    echo "    --export       Also save image to tar/tar.gz (without this flag: commit only, no file)"
+    echo "    --compress     Use gzip when writing tar (only with --export)"
+    echo "    --skip-commit  Skip docker commit, use existing image (for re-push/re-save only)"
+    echo "    --keep-jenkins  Do not remove /var/lib/jenkins during cleanup (default: remove it)"
+    echo "    --push <tag>   Push image to registry after commit (e.g. user/repo:v1.0)"
     echo
-    echo "  2) Test the image:"
-    echo "     ./start_plain.bash <image_name> <test_container_name>"
+    echo "  If output_file is given (and --export is used), defaults to <image_name>.tar.gz or .tar"
     echo
-    echo "  3) Push to registry:"
-    echo "     image.bash --export <container_name> <image_name> --skip-commit --push rocm/pytorch-private:<tag>"
-    echo "     (or use docker push directly after tagging)"
+    echo "Example: cleanup and commit only (no tar file, no push):"
+    echo "  image.bash --export <container_name> <image_name> --cleanup"
+    echo
+    echo "Example: cleanup, commit, and save to tar.gz:"
+    echo "  image.bash --export <container_name> <image_name> --cleanup --export"
+    echo
+    echo "Example: cleanup, commit, then push to registry:"
+    echo "  image.bash --export <container_name> <image_name> --cleanup --push user/repo:tag"
+    echo "  image.bash --export <container_name> <image_name> --cleanup --push rocm/pytorch-private:<tag>"
+    echo
+    echo "Example: push existing image (no commit, no cleanup):"
+    echo "  image.bash --export <container_name> <image_name> --skip-commit --push rocm/pytorch-private:<tag>"
     echo
     echo "Import mode (tar/tar.gz -> image):"
     echo "  image.bash --import <input_file>"
@@ -31,24 +38,59 @@ usage() {
     exit 1
 }
 
-# Cleanup function to run inside temp container
+# Cleanup function to run inside temp container (before final commit).
+# All of this runs in the intermediate temp image to reduce final image size.
+# Includes: SSH/git, mount dirs, caches (pip/ccache/sccache/comgr/triton), rustup/cargo,
+# Jenkins (optional), and PyTorch source dirs (keeps only the one /root/pytorch points to).
 run_cleanup() {
     local temp_container="$1"
+    local keep_jenkins="${2:-false}"
     echo "Running cleanup commands in temp container..."
     
-    # Remove SSH keys (shred for secure deletion)
+    # --- SSH and git (sensitive / host-specific) ---
     docker exec "$temp_container" bash -c '
         shred -u ~/.ssh/id_rsa 2>/dev/null || true
         shred -u ~/.ssh/id_rsa.pub 2>/dev/null || true
         shred -u ~/.ssh/authorized_keys 2>/dev/null || true
         shred -u ~/.ssh/known_hosts* 2>/dev/null || true
     '
-    
-    # Remove git config
     docker exec "$temp_container" bash -c 'rm -f ~/.gitconfig 2>/dev/null || true'
     
-    # Remove empty mount point directories
+    # --- Empty mount point dirs (left from host bind-mounts) ---
     docker exec "$temp_container" bash -c 'rm -rf /root/shared /root/sharedump 2>/dev/null || true'
+    
+    # --- Caches and temp build dirs (can save many GB) ---
+    # pip, ccache, sccache, comgr, Triton cache; temp build dirs for pytorch/vision/audio
+    docker exec "$temp_container" bash -c '
+        rm -rf /root/.cache/pip /root/.cache/ccache /root/.cache/sccache \
+               /root/.cache/comgr /root/.triton \
+               /tmp/pytorch /tmp/vision /tmp/audio 2>/dev/null || true
+    '
+    
+    # --- Rust toolchain caches (~/.rustup, ~/.cargo can be large) ---
+    docker exec "$temp_container" bash -c 'rm -rf /root/.rustup /root/.cargo 2>/dev/null || true'
+    
+    # --- Jenkins state (remove unless you need it in the image) ---
+    if [ "$keep_jenkins" != "true" ]; then
+        docker exec "$temp_container" bash -c 'rm -rf /var/lib/jenkins 2>/dev/null || true'
+    fi
+    
+    # --- PyTorch source dirs: keep only the one /root/pytorch points to ---
+    # /root/pytorch is a symlink to the "current" install (e.g. /root/pytorch-2.1.0).
+    # There may be several /root/pytorch-* dirs from different builds; we remove all
+    # that are not the current target so the image only contains one PyTorch tree.
+    docker exec "$temp_container" bash -c '
+        if [ -L /root/pytorch ]; then
+            kept=$(readlink -f /root/pytorch)
+            for d in /root/pytorch-*; do
+                [ -e "$d" ] || continue
+                real_d=$(readlink -f "$d")
+                [ "$real_d" = "$kept" ] && continue
+                echo "Removing old PyTorch dir: $d"
+                rm -rf "$d"
+            done
+        fi
+    '
     
     echo "Cleanup done."
 }
@@ -76,6 +118,7 @@ case "$1" in
         skip_commit=false
         do_cleanup=false
         do_export=false
+        keep_jenkins=false
         push_tag=""
         output_file=""
         i=4
@@ -89,6 +132,8 @@ case "$1" in
                 do_export=true
             elif [ "$arg" == "--skip-commit" ]; then
                 skip_commit=true
+            elif [ "$arg" == "--keep-jenkins" ]; then
+                keep_jenkins=true
             elif [ "$arg" == "--push" ]; then
                 i=$((i + 1))
                 if [ $i -gt $# ]; then
@@ -124,6 +169,9 @@ case "$1" in
         fi
         echo "Compression: $compress"
         echo "Cleanup: $do_cleanup"
+        if $do_cleanup; then
+            echo "Keep Jenkins: $keep_jenkins"
+        fi
         echo "Skip commit: $skip_commit"
         echo "Export to tar: $do_export"
         if [ -n "$push_tag" ]; then
@@ -197,20 +245,42 @@ case "$1" in
                 echo
                 
                 echo "Step 3: Running cleanup..."
-                run_cleanup "$temp_container"
+                run_cleanup "$temp_container" "$keep_jenkins"
                 echo
                 
-                echo "Step 4: Committing cleaned container to final image..."
-                docker commit "$temp_container" "$image_name"
+                # Capture PATH and PYTHONPATH from the container so we can bake them into the final image.
+                # (Export/import only copies the filesystem; env vars are lost otherwise.)
+                PATH_VAL=$(docker exec "$temp_container" printenv PATH 2>/dev/null | tr -d '\n' || true)
+                PYTHONPATH_VAL=$(docker exec "$temp_container" printenv PYTHONPATH 2>/dev/null | tr -d '\n' || true)
+                change_args=()
+                if [ -n "$PATH_VAL" ]; then
+                    path_escaped=$(printf '%s' "$PATH_VAL" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                    change_args+=(-c "ENV PATH=\"$path_escaped\"")
+                fi
+                if [ -n "$PYTHONPATH_VAL" ]; then
+                    pythonpath_escaped=$(printf '%s' "$PYTHONPATH_VAL" | sed 's/\\/\\\\/g; s/"/\\"/g')
+                    change_args+=(-c "ENV PYTHONPATH=\"$pythonpath_escaped\"")
+                fi
+                
+                # Export+import flattens the image: deleted data is actually removed.
+                # (Commit would add a layer with whiteouts; lower layers would still hold the data.)
+                echo "Step 4: Exporting container and importing as single-layer image (reduces size)..."
+                if [ ${#change_args[@]} -gt 0 ]; then
+                    echo "Preserving PATH and PYTHONPATH in image."
+                fi
+                docker rmi "$image_name" 2>/dev/null || true
+                docker export "$temp_container" | docker import "${change_args[@]}" - "$image_name"
                 if [ $? -ne 0 ]; then
-                    echo "Error: Failed to commit cleaned container"
+                    echo "Error: Failed to export/import image"
                     docker rm -f "$temp_container" 2>/dev/null
                     docker rmi "$temp_image" 2>/dev/null
                     exit 1
                 fi
                 echo "Done."
                 echo
-                
+                echo "(Flattened image has no CMD/ENTRYPOINT; use e.g. docker run -it $image_name /bin/bash)"
+                echo
+
                 # Tag and push if requested
                 if [ -n "$push_tag" ]; then
                     echo "Step 4a: Tagging image as $push_tag..."
