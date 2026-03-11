@@ -20,13 +20,30 @@ target="/root/sharedump/out.txt"
 
 auto_yes=false
 just_install=false
+help_requested=false
 for arg in "$@"; do
     if [ "$arg" = "-y" ] || [ "$arg" = "--yes" ]; then
         auto_yes=true
     elif [ "$arg" = "--just-install" ]; then
         just_install=true
+    elif [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
+        help_requested=true
     fi
 done
+
+# ============================================================
+# HELP
+# ============================================================
+if [ "$help_requested" = true ]; then
+    echo "usage: $(basename "$0") [OPTIONS]"
+    echo
+    echo "Options:"
+    echo "  -h, --help          Show this help and exit"
+    echo "  --just-install      Only run the install step (assumes torch is already compiled)"
+    echo "  -y, --yes           Non-interactive: assume yes to all prompts"
+    echo
+    exit 0
+fi
 
 # ============================================================
 # JUST INSTALL MODE - Skip cleanup and compilation
@@ -200,9 +217,6 @@ export CMAKE_ARGS="-DCMAKE_POLICY_VERSION_MINIMUM=3.5"
 ## run this to clean any trace of a previous install and compilation of pytorch
 ## you need to be in /tmp/pytorch or /var/lib/jenkins/pytorch
 # pip uninstall -y torch  # let's not do this as we might want to use torch while the new version is compiling..
-rm -rf build
-python setup.py clean
-echo
 if [ "$auto_yes" = true ]; then
     choice="y"
 else
@@ -211,6 +225,10 @@ else
 fi
 echo
 if [[ $choice == "y" || $choice == "Y" ]]; then
+    echo "Cleaning build directory..."
+    rm -rf build
+    python setup.py clean
+    echo
     # git reset --hard
     git reset --hard --recurse-submodules
     ## -> discards everything not committed
@@ -360,46 +378,59 @@ echo
 # END VERSION CONSISTENCY CHECK & CLEANUP
 # ============================================================
 
+skip_compile=false
 if [ "$auto_yes" = false ]; then
-    echo "Press any key to proceed with compilation, CTRL-C to abort.."
-    read -n1
-    echo
+    read -p "Do you want to compile? (y/n): " compile_choice
+    if [[ $compile_choice != "y" && $compile_choice != "Y" ]]; then
+        skip_compile=true
+        echo
+        echo "Skipping compilation. You can proceed to install from an existing build."
+        echo
+    fi
+else
+    compile_choice="y"
 fi
 
-echo " " > $target
+if [ "$skip_compile" = false ]; then
+    echo " " > $target
 
-if [ ! -z "$PYTORCH_ROCM_ARCH" ]; then
-    echo " " >> $target
-    echo ">>>>>1 RUNNING build_amd.py" >> $target
-    echo " " >> $target
-    python tools/amd_build/build_amd.py >> $target 2>&1
-    echo " " >> $target
-fi
-### TIP: look for text "fatal error" if compilation crashes
-echo
-echo COMPILING
-echo
-echo see progress with:
-echo
-echo "tail -f $target"
-echo
-echo " " >> $target
-echo ">>>>>2 RUNNING SETUP DEVELOP" >> $target
-echo " " >> $target
-python setup.py develop >> $target 2>&1
-if [ $? -ne 0 ]; then
-    echo "FATAL"
-    echo "Failed to compile"
+    if [ ! -z "$PYTORCH_ROCM_ARCH" ]; then
+        echo " " >> $target
+        echo ">>>>>1 RUNNING build_amd.py" >> $target
+        echo " " >> $target
+        python tools/amd_build/build_amd.py >> $target 2>&1
+        echo " " >> $target
+    fi
+    ### TIP: look for text "fatal error" if compilation crashes
     echo
-    exit 1
+    echo COMPILING
+    echo
+    echo see progress with:
+    echo
+    echo "tail -f $target"
+    echo
+    echo " " >> $target
+    echo ">>>>>2 RUNNING SETUP DEVELOP" >> $target
+    echo " " >> $target
+    python setup.py develop >> $target 2>&1
+    if [ $? -ne 0 ]; then
+        echo "FATAL"
+        echo "Failed to compile"
+        echo
+        exit 1
+    fi
+    echo "Did pytorch compile at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
+    echo
+    echo "#### INSTALL PHASE #####" >> $target 2>&1
+    echo
+    echo "=========================================="
+    echo "  COMPILATION COMPLETE!"
+    echo "=========================================="
+else
+    echo "=========================================="
+    echo "  SKIPPED COMPILATION"
+    echo "=========================================="
 fi
-echo "Did pytorch compile at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
-echo
-echo "#### INSTALL PHASE #####" >> $target 2>&1
-echo
-echo "=========================================="
-echo "  COMPILATION COMPLETE!"
-echo "=========================================="
 echo
 echo "Next steps:"
 echo "  1. Uninstall current torch package"
@@ -409,8 +440,7 @@ if [ "$auto_yes" = false ]; then
     read -p "Continue with installation? (y/n): " install_choice
     if [[ $install_choice != "y" && $install_choice != "Y" ]]; then
         echo
-        echo "Installation skipped. PyTorch has been compiled but not installed."
-        echo "You can install it later by running:"
+        echo "Installation skipped. You can install later by running:"
         echo "  $0 --just-install"
         echo
         exit 0
