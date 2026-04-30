@@ -3,9 +3,70 @@
 set -e
 
 # Parse command line arguments
+NON_INTERACTIVE=false
 VERSION_ARG=""
-if [ $# -gt 0 ]; then
-    VERSION_ARG="$1"
+for arg in "$@"; do
+    case "$arg" in
+        -y|--yes|--non-interactive)
+            NON_INTERACTIVE=true
+            ;;
+        -h|--help)
+            echo "usage: $(basename "$0") [OPTIONS] [VERSION]"
+            echo
+            echo "Interactive: pick install method (git build vs PyPI)."
+            echo
+            echo "Non-interactive (-y / --non-interactive): install triton from PyPI only."
+            echo "  VERSION: e.g. 3.2.x, 3.2.0 (pip wildcard major.minor.*), or omit to read"
+            echo "           \${PYTORCH_ROOT:-\$HOME/pytorch}/.ci/docker/triton_version.txt"
+            echo
+            exit 0
+            ;;
+        -*)
+            echo "Unknown option: $arg (try --help)"
+            exit 1
+            ;;
+        *)
+            if [ -n "$VERSION_ARG" ]; then
+                echo "Unexpected extra argument: $arg"
+                exit 1
+            fi
+            VERSION_ARG="$arg"
+            ;;
+    esac
+done
+
+# ============================================================
+# Non-interactive: PyPI install only (for bisect / automation)
+# ============================================================
+if [ "$NON_INTERACTIVE" = true ]; then
+    PYTORCH_ROOT="${PYTORCH_ROOT:-$HOME/pytorch}"
+    PIN_FILE="$PYTORCH_ROOT/.ci/docker/triton_version.txt"
+    if [ -z "$VERSION_ARG" ]; then
+        if [ ! -f "$PIN_FILE" ]; then
+            echo "FATAL: no VERSION arg and missing pin file: $PIN_FILE"
+            exit 1
+        fi
+        VERSION_ARG=$(head -n1 "$PIN_FILE" | tr -d ' \r\n')
+        echo "Using Triton pin from $PIN_FILE -> $VERSION_ARG"
+    fi
+    # Map pins like 2.10.0a0 / 3.2.0+rocm -> major.minor.x for pip (wildcard == major.minor.*)
+    TRITON_GENERIC="$VERSION_ARG"
+    if echo "$VERSION_ARG" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]'; then
+        TRITON_GENERIC=$(echo "$VERSION_ARG" | sed -E 's/^([0-9]+\.[0-9]+)\.[0-9]+.*$/\1.x/')
+    fi
+    TRITON_VERSION_PATTERN="${TRITON_GENERIC%.x}.*"
+
+    echo "Non-interactive PyPI install: triton==$TRITON_VERSION_PATTERN"
+    pip uninstall -y triton 2>/dev/null || true
+    pip uninstall -y pytorch-triton-rocm 2>/dev/null || true
+    rm -rf ~/.triton 2>/dev/null || true
+
+    if ! pip install --no-deps "triton==$TRITON_VERSION_PATTERN"; then
+        echo "FATAL: pip install triton==$TRITON_VERSION_PATTERN failed"
+        exit 1
+    fi
+    echo "✓ Triton installed (non-interactive)."
+    exit 0
 fi
 
 # Function to prompt for input with default

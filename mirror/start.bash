@@ -1,5 +1,11 @@
 #!/bin/bash
 ## use at SERVER
+#
+## Optional: skip `docker pull` when the image already exists locally (avoids registry
+## round-trips). Default remains “always pull” so you do not keep an ancient tag.
+##   - export SKIP_DOCKER_PULL=1   (or yes/true/on)
+##   - ./start.bash --skip-pull
+#
 # docker run -d --name $container_name $image_id tail -f /dev/null
 ## a more comprehensive container run/start command:
 ##   --gpus all \  # doesnt work for rocm
@@ -10,6 +16,30 @@
 ## in order this to work, you need to be in these groups:
 # sudo usermod -a -G video render wheel docker $USER
 ##
+
+truthy_env() {
+  case "${1:-}" in
+    1|yes|YES|true|TRUE|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+SKIP_PULL=0
+truthy_env "${SKIP_DOCKER_PULL:-}" && SKIP_PULL=1
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --skip-pull) SKIP_PULL=1; shift ;;
+    -h|--help)
+      sed -n '1,20p' "$0"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1 (try --skip-pull or --help)" >&2
+      exit 1
+      ;;
+  esac
+done
 
 # Check if the container exists
 container_id=$(docker ps -aq -f name=^/${container_name}$)
@@ -34,25 +64,32 @@ if [ -n "$container_id" ]; then
     fi
 else
     IMAGE_NAME=$image_id
-    #if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
-    #    echo "Image $IMAGE_NAME already exists locally."
-    #    # NO NO NO .. we can end up with an ancient image!
-    #else
-    # echo "Image $IMAGE_NAME does not exist locally. Attempting to pull..."
     echo $IMAGE_NAME >> $HOME/MY_IMAGES.txt
-    if docker pull "$IMAGE_NAME"; then
-        echo "Successfully pulled $IMAGE_NAME."
+
+    if [ "$SKIP_PULL" -eq 1 ]; then
+        if docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
+            echo "Using local image $IMAGE_NAME (skip pull: SKIP_DOCKER_PULL or --skip-pull)."
+        else
+            echo "Image $IMAGE_NAME is not present locally and pull was skipped." >&2
+            echo "Run start.bash without --skip-pull, or: docker pull \"$IMAGE_NAME\"" >&2
+            exit 1
+        fi
     else
-        echo
-        echo
-        echo "Failed to pull $IMAGE_NAME. Please check the image name and your internet connection."
-        echo "NOTE: if its about certificates remember to edit your /etc/docker/daemon.json"
-        echo "REMINDER: no https or /v2 into the server name, just the plain URL"
-        echo "Then restart docker daemon with"
-        echo "sudo systemctl restart docker"
-        echo
-        exit 1
+        if docker pull "$IMAGE_NAME"; then
+            echo "Successfully pulled $IMAGE_NAME."
+        else
+            echo
+            echo
+            echo "Failed to pull $IMAGE_NAME. Please check the image name and your internet connection."
+            echo "NOTE: if its about certificates remember to edit your /etc/docker/daemon.json"
+            echo "REMINDER: no https or /v2 into the server name, just the plain URL"
+            echo "Then restart docker daemon with"
+            echo "sudo systemctl restart docker"
+            echo
+            exit 1
+        fi
     fi
+
     # 
     if command -v nvidia-smi &> /dev/null || lspci | grep -i nvidia &> /dev/null; then
     # NVIDIA version

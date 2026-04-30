@@ -33,7 +33,8 @@ include_txt=(
 )
 
 ## use at CLIENT
-do_rsync --exclude "context/" $username@$hostname:mirror/* $HOME/mirror/ & \
+# Sync mirror/ (not mirror/*): a glob would list context/ as its own source and bypass --exclude.
+do_rsync --exclude '/context/' $username@$hostname:mirror/ $HOME/mirror/ & \
 do_rsync --exclude "**/.*" $username@$hostname:shared/bin/* $HOME/shared/bin/ & \
 do_rsync "${exclude_artefacts[@]}" --exclude="*" $username@$hostname:shared/notebook/ $HOME/shared/notebook/ & \
 do_rsync "${exclude_artefacts[@]}" --exclude="*" $username@$hostname:shared/script/ $HOME/shared/script/ & \

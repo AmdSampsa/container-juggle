@@ -20,12 +20,15 @@ target="/root/sharedump/out.txt"
 
 auto_yes=false
 just_install=false
+just_clean=false
 help_requested=false
 for arg in "$@"; do
     if [ "$arg" = "-y" ] || [ "$arg" = "--yes" ]; then
         auto_yes=true
     elif [ "$arg" = "--just-install" ]; then
         just_install=true
+    elif [ "$arg" = "--just-clean" ]; then
+        just_clean=true
     elif [ "$arg" = "-h" ] || [ "$arg" = "--help" ]; then
         help_requested=true
     fi
@@ -40,6 +43,8 @@ if [ "$help_requested" = true ]; then
     echo "Options:"
     echo "  -h, --help          Show this help and exit"
     echo "  --just-install      Only run the install step (assumes torch is already compiled)"
+    echo "  --just-clean        Only reset/clean the source tree + submodules (no compile/install)"
+    echo "                       Pair with -y for bisect/automation."
     echo "  -y, --yes           Non-interactive: assume yes to all prompts"
     echo
     exit 0
@@ -93,6 +98,156 @@ fi
 # ============================================================
 # END JUST INSTALL MODE
 # ============================================================
+
+# Shared cleanup: run from repository root (same as manual flow before compile).
+run_pytorch_tree_cleanup_core() {
+    echo "Cleaning build directory..."
+    rm -rf build
+    python setup.py clean
+    echo
+    git reset --hard --recurse-submodules
+    git clean -fd
+    git submodule foreach --recursive git clean -fd
+
+    echo "Cleaning untracked submodule-like directories..."
+    if [ -f .gitmodules ]; then
+        actual_submodules=$(git config --file .gitmodules --get-regexp path | awk '{print $2}')
+    else
+        actual_submodules=""
+    fi
+
+    for search_dir in third_party android; do
+        if [ ! -d "$search_dir" ]; then
+            continue
+        fi
+        for dir in "$search_dir"/*; do
+            if [[ "$dir" == *"*"* ]]; then
+                continue
+            fi
+            if [ ! -d "$dir" ]; then
+                continue
+            fi
+            if [ -f "$dir/.git" ] || [ -L "$dir/.git" ]; then
+                dir_path="${dir#./}"
+                is_registered=false
+                for submod in $actual_submodules; do
+                    if [ "$submod" = "$dir_path" ]; then
+                        is_registered=true
+                        break
+                    fi
+                done
+                if [ "$is_registered" = false ]; then
+                    echo "  Removing unregistered submodule-like directory: $dir"
+                    rm -rf "$dir"
+                fi
+            elif ! git ls-files --error-unmatch "$dir" &>/dev/null 2>&1; then
+                echo "  Removing untracked directory: $dir"
+                rm -rf "$dir"
+            fi
+        done
+    done
+
+    if git submodule status third_party/kineto &>/dev/null; then
+        git submodule deinit -f third_party/kineto
+    fi
+    rm -rf third_party/x86-simd-sort/
+    rm -rf third_party/kleidiai/
+    git submodule update --init --recursive
+    if [ $? -ne 0 ]; then
+        echo "FATAL"
+        echo "Failed to update submodules"
+        echo
+        exit 1
+    fi
+    echo "Did pytorch cleanup at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
+    echo
+    echo "GIT STATUS:"
+    git status -uno
+}
+
+run_pytorch_post_cleanup_version_checks() {
+    if [ ! -z "$PYTORCH_ROCM_ARCH" ]; then
+        echo "AMD: $PYTORCH_ROCM_ARCH"
+    elif [ ! -z "$TORCH_CUDA_ARCH_LIST" ]; then
+        echo "NVIDIA: $TORCH_CUDA_ARCH_LIST"
+    fi
+
+    echo
+    echo "Checking version consistency..."
+    if [ -f "version.txt" ]; then
+        version_txt=$(cat version.txt | head -n1)
+        txt_major=$(echo "$version_txt" | cut -d. -f1)
+        txt_minor=$(echo "$version_txt" | cut -d. -f2)
+
+        echo "  version.txt: ${version_txt} (${txt_major}.${txt_minor})"
+
+        if [ -n "$PYTORCH_BUILD_VERSION" ]; then
+            echo
+            echo "⚠️  WARNING: PYTORCH_BUILD_VERSION is set to: $PYTORCH_BUILD_VERSION"
+            echo "  This will OVERRIDE version.txt during build!"
+            echo "  Unsetting PYTORCH_BUILD_VERSION and PYTORCH_BUILD_NUMBER..."
+            unset PYTORCH_BUILD_VERSION
+            unset PYTORCH_BUILD_NUMBER
+            unset PYTORCH_VERSION
+            echo "  ✓ Environment variables cleared"
+        fi
+
+        if [ -f "torch/version.py" ]; then
+            cached_version=$(grep "^__version__" torch/version.py 2>/dev/null | cut -d"'" -f2)
+            if [ -n "$cached_version" ]; then
+                echo "  torch/version.py (cached): $cached_version"
+                if [[ ! "$cached_version" =~ ^${txt_major}\.${txt_minor} ]]; then
+                    echo "  ⚠️  Cached version mismatch! Removing torch/version.py..."
+                    rm -f torch/version.py
+                    echo "  ✓ Removed cached torch/version.py"
+                fi
+            fi
+        fi
+
+        if [ -f "torch/headeronly/version.h" ]; then
+            header_major=$(grep "^#define TORCH_VERSION_MAJOR" torch/headeronly/version.h 2>/dev/null | awk '{print $3}')
+            header_minor=$(grep "^#define TORCH_VERSION_MINOR" torch/headeronly/version.h 2>/dev/null | awk '{print $3}')
+
+            if [ -n "$header_major" ] && [ -n "$header_minor" ]; then
+                echo "  torch/headeronly/version.h: ${header_major}.${header_minor}"
+
+                if [ "$txt_major" != "$header_major" ] || [ "$txt_minor" != "$header_minor" ]; then
+                    echo "  ⚠️  Stale version.h detected! Removing..."
+                    rm -f torch/headeronly/version.h
+                    echo "  ✓ Removed stale version.h"
+                fi
+            fi
+        fi
+
+        echo "  ✓ Version consistency check complete"
+    else
+        echo "  ⚠️  Could not find version.txt"
+    fi
+    echo
+}
+
+# ============================================================
+# JUST CLEAN MODE — no GPU arch / toolchain / compile / install
+# ============================================================
+if [ "$just_clean" = true ]; then
+    echo "=========================================="
+    echo "  JUST CLEAN (source tree + submodules only)"
+    echo "=========================================="
+    echo "  No HIPify/compile/install. Use from pytorch repo root."
+    echo "  Next typical step: git checkout / bisect, then clean_torch.bash --yes"
+    echo
+    if [ "$auto_yes" = false ]; then
+        read -p "Continue with cleanup? (y/n): " choice
+        if [[ $choice != "y" && $choice != "Y" ]]; then
+            echo "Aborted."
+            exit 0
+        fi
+    fi
+    run_pytorch_tree_cleanup_core
+    run_pytorch_post_cleanup_version_checks
+    echo "✓ --just-clean complete."
+    exit 0
+fi
 
 # Detect GPU and set architecture
 #detect_gpu_and_set_arch
@@ -225,158 +380,11 @@ else
 fi
 echo
 if [[ $choice == "y" || $choice == "Y" ]]; then
-    echo "Cleaning build directory..."
-    rm -rf build
-    python setup.py clean
-    echo
-    # git reset --hard
-    git reset --hard --recurse-submodules
-    ## -> discards everything not committed
-    git clean -fd
-    ## -> removes all .so and .pyc build artifacts
-    # Clean untracked files in all submodules
-    git submodule foreach --recursive git clean -fd
-    
-    # Aggressively clean untracked directories that look like submodules but aren't registered
-    echo "Cleaning untracked submodule-like directories..."
-    # Get list of actual submodule paths from .gitmodules
-    if [ -f .gitmodules ]; then
-        actual_submodules=$(git config --file .gitmodules --get-regexp path | awk '{print $2}')
-    else
-        actual_submodules=""
-    fi
-    
-    # Find and remove untracked directories in third_party/ and android/
-    # that aren't actual registered submodules
-    for search_dir in third_party android; do
-        if [ ! -d "$search_dir" ]; then
-            continue
-        fi
-        for dir in "$search_dir"/*; do
-            # Skip if glob didn't match (path would contain literal *)
-            if [[ "$dir" == *"*"* ]]; then
-                continue
-            fi
-            if [ ! -d "$dir" ]; then
-                continue
-            fi
-            # Check if it's an actual submodule (has .git file pointing to modules)
-            if [ -f "$dir/.git" ] || [ -L "$dir/.git" ]; then
-                # It looks like a submodule - check if it's registered
-                dir_path="${dir#./}"
-                is_registered=false
-                for submod in $actual_submodules; do
-                    if [ "$submod" = "$dir_path" ]; then
-                        is_registered=true
-                        break
-                    fi
-                done
-                if [ "$is_registered" = false ]; then
-                    echo "  Removing unregistered submodule-like directory: $dir"
-                    rm -rf "$dir"
-                fi
-            elif ! git ls-files --error-unmatch "$dir" &>/dev/null 2>&1; then
-                # Not tracked by git and not a submodule - remove it
-                echo "  Removing untracked directory: $dir"
-                rm -rf "$dir"
-            fi
-        done
-    done
-    
-    ## stubborn kineto.. (only deinit if it exists)
-    if git submodule status third_party/kineto &>/dev/null; then
-        git submodule deinit -f third_party/kineto
-    fi
-    # Simply remove the directory if you don't need it
-    rm -rf third_party/x86-simd-sort/
-    rm -rf third_party/kleidiai/
-    #git submodule update --init --recursive third_party/kineto
-    #git submodule update --init --recursive third_party/composable_kernel
-    git submodule update --init --recursive
-    if [ $? -ne 0 ]; then
-        echo "FATAL"
-        echo "Failed to update submodules"
-        echo
-        exit 1
-    fi
-    echo "Did pytorch cleanup at $(date '+%Y-%m-%d %H:%M:%S') in ${PWD}" >> /tmp/torchlog.txt
-    #
-    echo
-    echo "GIT STATUS:"
-    git status -uno
-    # -> doesn't show uncommitted files
+    run_pytorch_tree_cleanup_core
 else
     echo "no cleanup"
 fi
-if [ ! -z "$PYTORCH_ROCM_ARCH" ]; then
-    echo "AMD: $PYTORCH_ROCM_ARCH"
-elif [ ! -z "$TORCH_CUDA_ARCH_LIST" ]; then
-    echo "NVIDIA: $TORCH_CUDA_ARCH_LIST"
-fi
-
-# ============================================================
-# VERSION CONSISTENCY CHECK & CLEANUP
-# ============================================================
-echo
-echo "Checking version consistency..."
-if [ -f "version.txt" ]; then
-    # Extract version from version.txt (e.g., "2.10.0a0" -> major=2, minor=10)
-    version_txt=$(cat version.txt | head -n1)
-    txt_major=$(echo "$version_txt" | cut -d. -f1)
-    txt_minor=$(echo "$version_txt" | cut -d. -f2)
-    
-    echo "  version.txt: ${version_txt} (${txt_major}.${txt_minor})"
-    
-    # Check for environment variables that override version.txt
-    if [ -n "$PYTORCH_BUILD_VERSION" ]; then
-        echo
-        echo "⚠️  WARNING: PYTORCH_BUILD_VERSION is set to: $PYTORCH_BUILD_VERSION"
-        echo "  This will OVERRIDE version.txt during build!"
-        echo "  Unsetting PYTORCH_BUILD_VERSION and PYTORCH_BUILD_NUMBER..."
-        unset PYTORCH_BUILD_VERSION
-        unset PYTORCH_BUILD_NUMBER
-        unset PYTORCH_VERSION
-        echo "  ✓ Environment variables cleared"
-    fi
-    
-    # Check for cached torch/version.py
-    if [ -f "torch/version.py" ]; then
-        cached_version=$(grep "^__version__" torch/version.py 2>/dev/null | cut -d"'" -f2)
-        if [ -n "$cached_version" ]; then
-            echo "  torch/version.py (cached): $cached_version"
-            if [[ ! "$cached_version" =~ ^${txt_major}\.${txt_minor} ]]; then
-                echo "  ⚠️  Cached version mismatch! Removing torch/version.py..."
-                rm -f torch/version.py
-                echo "  ✓ Removed cached torch/version.py"
-            fi
-        fi
-    fi
-    
-    # Check if stale generated version.h exists (it should be deleted by git clean)
-    if [ -f "torch/headeronly/version.h" ]; then
-        # Extract version from torch/headeronly/version.h
-        header_major=$(grep "^#define TORCH_VERSION_MAJOR" torch/headeronly/version.h 2>/dev/null | awk '{print $3}')
-        header_minor=$(grep "^#define TORCH_VERSION_MINOR" torch/headeronly/version.h 2>/dev/null | awk '{print $3}')
-        
-        if [ -n "$header_major" ] && [ -n "$header_minor" ]; then
-            echo "  torch/headeronly/version.h: ${header_major}.${header_minor}"
-            
-            if [ "$txt_major" != "$header_major" ] || [ "$txt_minor" != "$header_minor" ]; then
-                echo "  ⚠️  Stale version.h detected! Removing..."
-                rm -f torch/headeronly/version.h
-                echo "  ✓ Removed stale version.h"
-            fi
-        fi
-    fi
-    
-    echo "  ✓ Version consistency check complete"
-else
-    echo "  ⚠️  Could not find version.txt"
-fi
-echo
-# ============================================================
-# END VERSION CONSISTENCY CHECK & CLEANUP
-# ============================================================
+run_pytorch_post_cleanup_version_checks
 
 skip_compile=false
 if [ "$auto_yes" = false ]; then
